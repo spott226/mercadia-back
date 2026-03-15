@@ -23,7 +23,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 /* =========================
    RUTAS API
 ========================= */
-app.use("/api/store", storeRoutes);
+app.use("/api/stores", storeRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 
