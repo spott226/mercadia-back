@@ -1,10 +1,35 @@
 const db = require("../db/db");
 
 /* =========================
-   OBTENER PRODUCTOS POR TIENDA
+   OBTENER TODOS LOS PRODUCTOS
 ========================= */
 
 exports.getProductsByStore = async (store_id) => {
+
+  try {
+
+    const result = await db.query(
+      "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
+      [store_id]
+    );
+
+    return result.rows;
+
+  } catch (error) {
+
+    console.error("Error getting products:", error);
+    throw error;
+
+  }
+
+};
+
+
+/* =========================
+   OBTENER PRODUCTOS DESTACADOS
+========================= */
+
+exports.getFeaturedProducts = async (store_id) => {
 
   try {
 
@@ -17,7 +42,7 @@ exports.getProductsByStore = async (store_id) => {
 
   } catch (error) {
 
-    console.error("Error getting products:", error);
+    console.error("Error getting featured products:", error);
     throw error;
 
   }
