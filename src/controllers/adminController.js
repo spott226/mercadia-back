@@ -2,57 +2,54 @@ const User = require("../models/adminModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-exports.login = async (req, res) => {
+exports.login = async (req,res)=>{
 
-  try {
+  try{
 
-    // limpiar email para evitar espacios o mayúsculas
     const email = req.body.email.trim().toLowerCase();
     const password = req.body.password;
 
-    // buscar usuario
+    console.log("EMAIL RECIBIDO:", email);
+
     const user = await User.getUserByEmail(email);
 
-    if (!user) {
-      return res.status(401).json({
-        error: "invalid credentials"
-      });
+    console.log("USER EN BD:", user);
+
+    if(!user){
+      console.log("NO SE ENCONTRO USUARIO");
+      return res.status(401).json({error:"invalid credentials"});
     }
 
-    // comparar contraseña con bcrypt
-    const valid = await bcrypt.compare(password, user.password);
+    console.log("PASSWORD ENVIADO:", password);
+    console.log("HASH BD:", user.password);
 
-    if (!valid) {
-      return res.status(401).json({
-        error: "invalid credentials"
-      });
+    const valid = await bcrypt.compare(password,user.password);
+
+    console.log("RESULTADO BCRYPT:", valid);
+
+    if(!valid){
+      console.log("PASSWORD NO COINCIDE");
+      return res.status(401).json({error:"invalid credentials"});
     }
 
-    // generar token
     const token = jwt.sign(
       {
-        user_id: user.id,
-        store_id: user.store_id
+        user_id:user.id,
+        store_id:user.store_id
       },
       "MERCADIA_SECRET",
-      {
-        expiresIn: "1d"
-      }
+      { expiresIn:"1d" }
     );
 
-    // respuesta
     res.json({
-      token: token,
-      store_id: user.store_id
+      token,
+      store_id:user.store_id
     });
 
-  } catch (err) {
+  }catch(err){
 
     console.error("LOGIN ERROR:", err);
-
-    res.status(500).json({
-      error: "server error"
-    });
+    res.status(500).json({error:"server error"});
 
   }
 
