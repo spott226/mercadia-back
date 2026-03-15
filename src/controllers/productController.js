@@ -1,130 +1,25 @@
-const Product = require("../models/productModel");
-const Store = require("../models/storeModel");
+const db = require("../db/db");
 
 
 /* =========================
-   OBTENER PRODUCTOS
+OBTENER TODOS LOS PRODUCTOS
 ========================= */
 
-exports.getProducts = async (req, res) => {
+exports.getProductsByStore = async (store_id) => {
 
   try {
 
-    const { store_id } = req.params;
-
-    const products = await Product.getProductsByStore(store_id);
-
-    res.json(products);
-
-  } catch (err) {
-
-    console.error(err);
-    res.status(500).json({ error: "server error" });
-
-  }
-
-};
-
-
-/* =========================
-   CREAR PRODUCTO
-========================= */
-
-exports.createProduct = async (req,res)=>{
-
-  try{
-
-    const store_id = req.user.store_id;
-
-    const count = await Product.countProductsByStore(store_id);
-    const limit = await Store.getProductLimit(store_id);
-
-    if(count >= limit){
-      return res.status(403).json({
-        error:"product limit reached"
-      });
-    }
-
-    const image = req.file ? req.file.filename : null;
-
-    const featured =
-      req.body.featured === "true" ||
-      req.body.featured === true ||
-      req.body.featured === "on";
-
-    const data = {
-      name: req.body.name,
-      description: req.body.description,
-      price: req.body.price,
-      category: req.body.category,
-      image: image,
-      store_id: store_id,
-      featured: featured
-    };
-
-    const product = await Product.createProduct(data);
-
-    res.status(201).json(product);
-
-  }catch(err){
-
-    console.error(err);
-    res.status(500).json({error:"server error"});
-
-  }
-
-};
-
-
-/* =========================
-   ACTUALIZAR PRODUCTO
-========================= */
-
-exports.updateProduct = async (req,res)=>{
-
-  try{
-
-    const { id } = req.params;
-
-    let image = null;
-
-    // si suben nueva imagen
-    if(req.file){
-      image = req.file.filename;
-    }else{
-      image = req.body.image || null;
-    }
-
-    const featured =
-      req.body.featured === "true" ||
-      req.body.featured === true ||
-      req.body.featured === "on";
-
-    const data = {
-      name: req.body.name,
-      description: req.body.description,
-      price: req.body.price,
-      category: req.body.category,
-      image,
-      featured
-    };
-
-    const product = await Product.updateProduct(
-      id,
-      req.user.store_id,
-      data
+    const result = await db.query(
+      "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
+      [store_id]
     );
 
-    if(!product){
-      return res.status(403).json({error:"not allowed"});
-    }
+    return result.rows;
 
-    res.json(product);
+  } catch (error) {
 
-  }catch(err){
-
-    console.error(err);
-    res.status(500).json({error:"server error"});
+    console.error("Error getting products:", error);
+    throw error;
 
   }
 
@@ -132,30 +27,139 @@ exports.updateProduct = async (req,res)=>{
 
 
 /* =========================
-   ELIMINAR PRODUCTO
+OBTENER PRODUCTOS DESTACADOS
 ========================= */
 
-exports.deleteProduct = async (req, res) => {
+exports.getFeaturedProducts = async (store_id) => {
 
   try {
 
-    const { id } = req.params;
-
-    const deleted = await Product.deleteProduct(
-      id,
-      req.user.store_id
+    const result = await db.query(
+      "SELECT * FROM products WHERE store_id = $1 AND featured = true ORDER BY id DESC LIMIT 4",
+      [store_id]
     );
 
-    if (!deleted) {
-      return res.status(403).json({ error: "not allowed" });
-    }
+    return result.rows;
 
-    res.json({ message: "product deleted" });
+  } catch (error) {
 
-  } catch (err) {
+    console.error("Error getting featured products:", error);
+    throw error;
 
-    console.error(err);
-    res.status(500).json({ error: "server error" });
+  }
+
+};
+
+
+/* =========================
+CREAR PRODUCTO
+========================= */
+
+exports.createProduct = async (data) => {
+
+  try {
+
+    const { name, description, price, image, category, store_id, featured } = data;
+
+    const result = await db.query(
+      `INSERT INTO products
+       (name, description, price, image, category, store_id, featured)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       RETURNING *`,
+      [name, description, price, image, category, store_id, featured || false]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+
+    console.error("Error creating product:", error);
+    throw error;
+
+  }
+
+};
+
+
+/* =========================
+ACTUALIZAR PRODUCTO
+========================= */
+
+exports.updateProduct = async (id, store_id, data) => {
+
+  try {
+
+    const { name, description, price, image, category, featured } = data;
+
+    const result = await db.query(
+      `UPDATE products
+       SET name=$1,
+           description=$2,
+           price=$3,
+           image=COALESCE($4,image),
+           category=$5,
+           featured=COALESCE($6,featured)
+       WHERE id=$7 AND store_id=$8
+       RETURNING *`,
+      [name, description, price, image, category, featured, id, store_id]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+
+    console.error("Error updating product:", error);
+    throw error;
+
+  }
+
+};
+
+
+/* =========================
+ELIMINAR PRODUCTO
+========================= */
+
+exports.deleteProduct = async (id, store_id) => {
+
+  try {
+
+    const result = await db.query(
+      "DELETE FROM products WHERE id=$1 AND store_id=$2 RETURNING id",
+      [id, store_id]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+
+    console.error("Error deleting product:", error);
+    throw error;
+
+  }
+
+};
+
+
+/* =========================
+CONTAR PRODUCTOS
+========================= */
+
+exports.countProductsByStore = async (store_id) => {
+
+  try {
+
+    const result = await db.query(
+      "SELECT COUNT(*) FROM products WHERE store_id = $1",
+      [store_id]
+    );
+
+    return parseInt(result.rows[0].count);
+
+  } catch (error) {
+
+    console.error("Error counting products:", error);
+    throw error;
 
   }
 
