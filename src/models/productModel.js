@@ -9,7 +9,7 @@ exports.getProductsByStore = async (store_id) => {
   try {
 
     const result = await db.query(
-      "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
+      "SELECT * FROM products WHERE store_id = $1 AND featured = true ORDER BY id DESC LIMIT 4",
       [store_id]
     );
 
@@ -33,14 +33,14 @@ exports.createProduct = async (data) => {
 
   try {
 
-    const { name, description, price, image, category, store_id } = data;
+    const { name, description, price, image, category, store_id, featured } = data;
 
     const result = await db.query(
       `INSERT INTO products
-       (name, description, price, image, category, store_id)
-       VALUES ($1,$2,$3,$4,$5,$6)
+       (name, description, price, image, category, store_id, featured)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        RETURNING *`,
-      [name, description, price, image, category, store_id]
+      [name, description, price, image, category, store_id, featured || false]
     );
 
     return result.rows[0];
@@ -63,7 +63,7 @@ exports.updateProduct = async (id, store_id, data) => {
 
   try {
 
-    const { name, description, price, image, category } = data;
+    const { name, description, price, image, category, featured } = data;
 
     const result = await db.query(
       `UPDATE products
@@ -71,10 +71,11 @@ exports.updateProduct = async (id, store_id, data) => {
            description=$2,
            price=$3,
            image=$4,
-           category=$5
-       WHERE id=$6 AND store_id=$7
+           category=$5,
+           featured=$6
+       WHERE id=$7 AND store_id=$8
        RETURNING *`,
-      [name, description, price, image, category, id, store_id]
+      [name, description, price, image, category, featured || false, id, store_id]
     );
 
     return result.rows[0];
