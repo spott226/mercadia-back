@@ -29,7 +29,10 @@ exports.login = async (req,res)=>{
       { expiresIn:"1d" }
     );
 
-    res.json({token});
+    res.json({
+      token,
+      store_id: user.store_id
+    });
 
   }catch(err){
 
