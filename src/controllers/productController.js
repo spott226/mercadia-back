@@ -66,7 +66,15 @@ exports.createProduct = async (data) => {
        (name, description, price, image, category, store_id, featured)
        VALUES ($1,$2,$3,$4,$5,$6,$7)
        RETURNING *`,
-      [name, description, price, image, category, store_id, featured || false]
+      [
+        name,
+        description,
+        price,
+        image,
+        category,
+        store_id,
+        featured || false
+      ]
     );
 
     return result.rows[0];
@@ -96,12 +104,21 @@ exports.updateProduct = async (id, store_id, data) => {
        SET name=$1,
            description=$2,
            price=$3,
-           image=COALESCE($4,image),
+           image = COALESCE($4, image),
            category=$5,
-           featured=COALESCE($6,featured)
+           featured=$6
        WHERE id=$7 AND store_id=$8
        RETURNING *`,
-      [name, description, price, image, category, featured, id, store_id]
+      [
+        name,
+        description,
+        price,
+        image,
+        category,
+        featured,
+        id,
+        store_id
+      ]
     );
 
     return result.rows[0];
