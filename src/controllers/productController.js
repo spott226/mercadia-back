@@ -1,50 +1,25 @@
-const db = require("../db/db");
+const Product = require("../models/productModel");
+const Store = require("../models/storeModel");
 
 
 /* =========================
-OBTENER TODOS LOS PRODUCTOS
+OBTENER PRODUCTOS
 ========================= */
 
-exports.getProductsByStore = async (store_id) => {
+exports.getProducts = async (req, res) => {
 
   try {
 
-    const result = await db.query(
-      "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
-      [store_id]
-    );
+    const { store_id } = req.params;
 
-    return result.rows;
+    const products = await Product.getProductsByStore(store_id);
 
-  } catch (error) {
+    res.json(products);
 
-    console.error("Error getting products:", error);
-    throw error;
+  } catch (err) {
 
-  }
-
-};
-
-
-/* =========================
-OBTENER PRODUCTOS DESTACADOS
-========================= */
-
-exports.getFeaturedProducts = async (store_id) => {
-
-  try {
-
-    const result = await db.query(
-      "SELECT * FROM products WHERE store_id = $1 AND featured = true ORDER BY id DESC LIMIT 4",
-      [store_id]
-    );
-
-    return result.rows;
-
-  } catch (error) {
-
-    console.error("Error getting featured products:", error);
-    throw error;
+    console.error(err);
+    res.status(500).json({ error: "server error" });
 
   }
 
@@ -55,34 +30,46 @@ exports.getFeaturedProducts = async (store_id) => {
 CREAR PRODUCTO
 ========================= */
 
-exports.createProduct = async (data) => {
+exports.createProduct = async (req, res) => {
 
   try {
 
-    const { name, description, price, image, category, store_id, featured } = data;
+    const store_id = req.user.store_id;
 
-    const result = await db.query(
-      `INSERT INTO products
-       (name, description, price, image, category, store_id, featured)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
-       RETURNING *`,
-      [
-        name,
-        description,
-        price,
-        image,
-        category,
-        store_id,
-        featured || false
-      ]
-    );
+    const count = await Product.countProductsByStore(store_id);
+    const limit = await Store.getProductLimit(store_id);
 
-    return result.rows[0];
+    if (count >= limit) {
+      return res.status(403).json({
+        error: "product limit reached"
+      });
+    }
 
-  } catch (error) {
+    const image = req.file ? req.file.filename : null;
 
-    console.error("Error creating product:", error);
-    throw error;
+    const featured =
+      req.body.featured === "true" ||
+      req.body.featured === true ||
+      req.body.featured === "on";
+
+    const data = {
+      name: req.body.name,
+      description: req.body.description,
+      price: req.body.price,
+      category: req.body.category,
+      image: image,
+      store_id: store_id,
+      featured: featured
+    };
+
+    const product = await Product.createProduct(data);
+
+    res.status(201).json(product);
+
+  } catch (err) {
+
+    console.error(err);
+    res.status(500).json({ error: "server error" });
 
   }
 
@@ -93,40 +80,49 @@ exports.createProduct = async (data) => {
 ACTUALIZAR PRODUCTO
 ========================= */
 
-exports.updateProduct = async (id, store_id, data) => {
+exports.updateProduct = async (req, res) => {
 
   try {
 
-    const { name, description, price, image, category, featured } = data;
+    const { id } = req.params;
 
-    const result = await db.query(
-      `UPDATE products
-       SET name=$1,
-           description=$2,
-           price=$3,
-           image = COALESCE($4, image),
-           category=$5,
-           featured=$6
-       WHERE id=$7 AND store_id=$8
-       RETURNING *`,
-      [
-        name,
-        description,
-        price,
-        image,
-        category,
-        featured,
-        id,
-        store_id
-      ]
+    let image = null;
+
+    // si suben nueva imagen
+    if (req.file) {
+      image = req.file.filename;
+    }
+
+    const featured =
+      req.body.featured === "true" ||
+      req.body.featured === true ||
+      req.body.featured === "on";
+
+    const data = {
+      name: req.body.name,
+      description: req.body.description,
+      price: req.body.price,
+      category: req.body.category,
+      image: image,
+      featured: featured
+    };
+
+    const product = await Product.updateProduct(
+      id,
+      req.user.store_id,
+      data
     );
 
-    return result.rows[0];
+    if (!product) {
+      return res.status(403).json({ error: "not allowed" });
+    }
 
-  } catch (error) {
+    res.json(product);
 
-    console.error("Error updating product:", error);
-    throw error;
+  } catch (err) {
+
+    console.error(err);
+    res.status(500).json({ error: "server error" });
 
   }
 
@@ -137,46 +133,27 @@ exports.updateProduct = async (id, store_id, data) => {
 ELIMINAR PRODUCTO
 ========================= */
 
-exports.deleteProduct = async (id, store_id) => {
+exports.deleteProduct = async (req, res) => {
 
   try {
 
-    const result = await db.query(
-      "DELETE FROM products WHERE id=$1 AND store_id=$2 RETURNING id",
-      [id, store_id]
+    const { id } = req.params;
+
+    const deleted = await Product.deleteProduct(
+      id,
+      req.user.store_id
     );
 
-    return result.rows[0];
+    if (!deleted) {
+      return res.status(403).json({ error: "not allowed" });
+    }
 
-  } catch (error) {
+    res.json({ message: "product deleted" });
 
-    console.error("Error deleting product:", error);
-    throw error;
+  } catch (err) {
 
-  }
-
-};
-
-
-/* =========================
-CONTAR PRODUCTOS
-========================= */
-
-exports.countProductsByStore = async (store_id) => {
-
-  try {
-
-    const result = await db.query(
-      "SELECT COUNT(*) FROM products WHERE store_id = $1",
-      [store_id]
-    );
-
-    return parseInt(result.rows[0].count);
-
-  } catch (error) {
-
-    console.error("Error counting products:", error);
-    throw error;
+    console.error(err);
+    res.status(500).json({ error: "server error" });
 
   }
 
