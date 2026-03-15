@@ -2,42 +2,57 @@ const User = require("../models/adminModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-exports.login = async (req,res)=>{
+exports.login = async (req, res) => {
 
-  try{
+  try {
 
-    const { email, password } = req.body;
+    // limpiar email para evitar espacios o mayúsculas
+    const email = req.body.email.trim().toLowerCase();
+    const password = req.body.password;
 
+    // buscar usuario
     const user = await User.getUserByEmail(email);
 
-    if(!user){
-      return res.status(401).json({error:"invalid credentials"});
+    if (!user) {
+      return res.status(401).json({
+        error: "invalid credentials"
+      });
     }
 
-    const valid = await bcrypt.compare(password,user.password);
+    // comparar contraseña con bcrypt
+    const valid = await bcrypt.compare(password, user.password);
 
-    if(!valid){
-      return res.status(401).json({error:"invalid credentials"});
+    if (!valid) {
+      return res.status(401).json({
+        error: "invalid credentials"
+      });
     }
 
+    // generar token
     const token = jwt.sign(
       {
-        user_id:user.id,
-        store_id:user.store_id
+        user_id: user.id,
+        store_id: user.store_id
       },
       "MERCADIA_SECRET",
-      { expiresIn:"1d" }
+      {
+        expiresIn: "1d"
+      }
     );
 
+    // respuesta
     res.json({
-      token,
+      token: token,
       store_id: user.store_id
     });
 
-  }catch(err){
+  } catch (err) {
 
-    console.error(err);
-    res.status(500).json({error:"server error"});
+    console.error("LOGIN ERROR:", err);
+
+    res.status(500).json({
+      error: "server error"
+    });
 
   }
 
