@@ -1,67 +1,139 @@
 const db = require("../db/db");
 
+/* =========================
+   OBTENER PRODUCTOS POR TIENDA
+========================= */
+
 exports.getProductsByStore = async (store_id) => {
 
-  const result = await db.query(
-    "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
-    [store_id]
-  );
+  try {
 
-  return result.rows;
+    const result = await db.query(
+      "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
+      [store_id]
+    );
+
+    return result.rows;
+
+  } catch (error) {
+
+    console.error("Error getting products:", error);
+    throw error;
+
+  }
+
 };
+
+
+/* =========================
+   CREAR PRODUCTO
+========================= */
 
 exports.createProduct = async (data) => {
 
-  const { name, description, price, image, category, store_id } = data;
+  try {
 
-  const result = await db.query(
-    `INSERT INTO products
-     (name, description, price, image, category, store_id)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     RETURNING *`,
-    [name, description, price, image, category, store_id]
-  );
+    const { name, description, price, image, category, store_id } = data;
 
-  return result.rows[0];
+    const result = await db.query(
+      `INSERT INTO products
+       (name, description, price, image, category, store_id)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       RETURNING *`,
+      [name, description, price, image, category, store_id]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+
+    console.error("Error creating product:", error);
+    throw error;
+
+  }
+
 };
+
+
+/* =========================
+   ACTUALIZAR PRODUCTO
+========================= */
 
 exports.updateProduct = async (id, store_id, data) => {
 
-  const { name, description, price, image, category } = data;
+  try {
 
-  const result = await db.query(
-    `UPDATE products
-     SET name=$1,
-         description=$2,
-         price=$3,
-         image=$4,
-         category=$5
-     WHERE id=$6 AND store_id=$7
-     RETURNING *`,
-    [name, description, price, image, category, id, store_id]
-  );
+    const { name, description, price, image, category } = data;
 
-  return result.rows[0];
+    const result = await db.query(
+      `UPDATE products
+       SET name=$1,
+           description=$2,
+           price=$3,
+           image=$4,
+           category=$5
+       WHERE id=$6 AND store_id=$7
+       RETURNING *`,
+      [name, description, price, image, category, id, store_id]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+
+    console.error("Error updating product:", error);
+    throw error;
+
+  }
+
 };
+
+
+/* =========================
+   ELIMINAR PRODUCTO
+========================= */
 
 exports.deleteProduct = async (id, store_id) => {
 
-  const result = await db.query(
-    "DELETE FROM products WHERE id=$1 AND store_id=$2 RETURNING id",
-    [id, store_id]
-  );
+  try {
 
-  return result.rows[0];
+    const result = await db.query(
+      "DELETE FROM products WHERE id=$1 AND store_id=$2 RETURNING id",
+      [id, store_id]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+
+    console.error("Error deleting product:", error);
+    throw error;
+
+  }
+
 };
 
-// NUEVO: contar productos por tienda
+
+/* =========================
+   CONTAR PRODUCTOS POR TIENDA
+========================= */
+
 exports.countProductsByStore = async (store_id) => {
 
-  const result = await db.query(
-    "SELECT COUNT(*) FROM products WHERE store_id = $1",
-    [store_id]
-  );
+  try {
 
-  return parseInt(result.rows[0].count);
+    const result = await db.query(
+      "SELECT COUNT(*) FROM products WHERE store_id = $1",
+      [store_id]
+    );
+
+    return parseInt(result.rows[0].count);
+
+  } catch (error) {
+
+    console.error("Error counting products:", error);
+    throw error;
+
+  }
 
 };
