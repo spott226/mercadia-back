@@ -1,6 +1,11 @@
 const Product = require("../models/productModel");
 const Store = require("../models/storeModel");
 
+
+/* =========================
+   OBTENER PRODUCTOS
+========================= */
+
 exports.getProducts = async (req, res) => {
 
   try {
@@ -21,6 +26,9 @@ exports.getProducts = async (req, res) => {
 };
 
 
+/* =========================
+   CREAR PRODUCTO
+========================= */
 
 exports.createProduct = async (req,res)=>{
 
@@ -39,13 +47,19 @@ exports.createProduct = async (req,res)=>{
 
     const image = req.file ? req.file.filename : null;
 
+    const featured =
+      req.body.featured === "true" ||
+      req.body.featured === true ||
+      req.body.featured === "on";
+
     const data = {
       name: req.body.name,
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
       image: image,
-      store_id: store_id
+      store_id: store_id,
+      featured: featured
     };
 
     const product = await Product.createProduct(data);
@@ -61,6 +75,11 @@ exports.createProduct = async (req,res)=>{
 
 };
 
+
+/* =========================
+   ACTUALIZAR PRODUCTO
+========================= */
+
 exports.updateProduct = async (req,res)=>{
 
   try{
@@ -69,19 +88,25 @@ exports.updateProduct = async (req,res)=>{
 
     let image = null;
 
-    // si viene nueva imagen
+    // si suben nueva imagen
     if(req.file){
       image = req.file.filename;
     }else{
       image = req.body.image || null;
     }
 
+    const featured =
+      req.body.featured === "true" ||
+      req.body.featured === true ||
+      req.body.featured === "on";
+
     const data = {
       name: req.body.name,
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
-      image
+      image,
+      featured
     };
 
     const product = await Product.updateProduct(
@@ -104,6 +129,11 @@ exports.updateProduct = async (req,res)=>{
   }
 
 };
+
+
+/* =========================
+   ELIMINAR PRODUCTO
+========================= */
 
 exports.deleteProduct = async (req, res) => {
 
