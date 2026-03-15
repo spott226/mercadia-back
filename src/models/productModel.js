@@ -95,12 +95,12 @@ exports.updateProduct = async (id, store_id, data) => {
        SET name=$1,
            description=$2,
            price=$3,
-           image=COALESCE($4, image),
+           image=COALESCE($4,image),
            category=$5,
-           featured=$6
+           featured=COALESCE($6,featured)
        WHERE id=$7 AND store_id=$8
        RETURNING *`,
-      [name, description, price, image, category, featured || false, id, store_id]
+      [name, description, price, image, category, featured, id, store_id]
     );
 
     return result.rows[0];

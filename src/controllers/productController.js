@@ -88,15 +88,18 @@ exports.updateProduct = async (req, res) => {
 
     let image = null;
 
-    // si suben nueva imagen
     if (req.file) {
       image = req.file.filename;
     }
 
-    const featured =
-      req.body.featured === "true" ||
-      req.body.featured === true ||
-      req.body.featured === "on";
+    let featured = null;
+
+    if (req.body.featured !== undefined) {
+      featured =
+        req.body.featured === "true" ||
+        req.body.featured === true ||
+        req.body.featured === "on";
+    }
 
     const data = {
       name: req.body.name,
