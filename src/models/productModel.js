@@ -95,7 +95,7 @@ exports.updateProduct = async (id, store_id, data) => {
        SET name=$1,
            description=$2,
            price=$3,
-           image=$4,
+           image=COALESCE($4, image),
            category=$5,
            featured=$6
        WHERE id=$7 AND store_id=$8
