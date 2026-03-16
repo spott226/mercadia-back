@@ -14,7 +14,6 @@ exports.getProducts = async (req, res) => {
 
     const products = await Product.getProductsByStore(store_id);
 
-    // Agregar variantes e imágenes a cada producto
     for (const product of products) {
 
       const variants = await Product.getVariantsByProduct(product.id);
@@ -56,7 +55,7 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    const image = req.file ? req.file.path : null;
+    const image = req.file ? req.file.secure_url : null;
 
     const featured =
       req.body.featured === "true" ||
@@ -73,12 +72,14 @@ exports.createProduct = async (req, res) => {
       featured: featured
     };
 
-    // Crear producto base
     const product = await Product.createProduct(data);
 
     const product_id = product.id;
 
-    // Guardar variantes si vienen
+    /* =========================
+    GUARDAR VARIANTES
+    ========================= */
+
     if (req.body.variants) {
 
       let variants = req.body.variants;
@@ -94,26 +95,6 @@ exports.createProduct = async (req, res) => {
           color: variant.color,
           size: variant.size,
           price: variant.price
-        });
-
-      }
-
-    }
-
-    // Guardar imágenes adicionales
-    if (req.body.images) {
-
-      let images = req.body.images;
-
-      if (typeof images === "string") {
-        images = JSON.parse(images);
-      }
-
-      for (const img of images) {
-
-        await Product.createProductImage({
-          product_id: product_id,
-          image_url: img
         });
 
       }
@@ -145,7 +126,7 @@ exports.updateProduct = async (req, res) => {
     let image = null;
 
     if (req.file) {
-      image = req.file.path;
+      image = req.file.secure_url;
     }
 
     let featured = null;
@@ -174,6 +155,31 @@ exports.updateProduct = async (req, res) => {
 
     if (!product) {
       return res.status(403).json({ error: "not allowed" });
+    }
+
+    /* =========================
+    AGREGAR VARIANTES NUEVAS
+    ========================= */
+
+    if (req.body.variants) {
+
+      let variants = req.body.variants;
+
+      if (typeof variants === "string") {
+        variants = JSON.parse(variants);
+      }
+
+      for (const variant of variants) {
+
+        await Product.createVariant({
+          product_id: id,
+          color: variant.color,
+          size: variant.size,
+          price: variant.price
+        });
+
+      }
+
     }
 
     res.json(product);
