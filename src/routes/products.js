@@ -10,11 +10,11 @@ router.get("/:store_id", productController.getProducts);
 
 // operaciones del panel (requieren token)
 
-// crear producto con imagen
-router.post("/", auth, upload.single("image"), productController.createProduct);
+// crear producto con imagen y variantes
+router.post("/", auth, upload.any(), productController.createProduct);
 
-// editar producto con imagen
-router.put("/:id", auth, upload.single("image"), productController.updateProduct);
+// editar producto con imagen y variantes
+router.put("/:id", auth, upload.any(), productController.updateProduct);
 
 // eliminar producto
 router.delete("/:id", auth, productController.deleteProduct);
