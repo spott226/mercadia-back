@@ -1,17 +1,13 @@
 const multer = require("multer");
-const path = require("path");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 
-const storage = multer.diskStorage({
-
-destination: function(req,file,cb){
-cb(null, path.join(__dirname,"../uploads"));
-},
-
-filename: function(req,file,cb){
-const uniqueName = Date.now() + "-" + file.originalname.replace(/\s/g,"_");
-cb(null, uniqueName);
-}
-
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "mercadia/products",
+    allowed_formats: ["jpg","png","jpeg","webp"]
+  }
 });
 
 const upload = multer({ storage });
