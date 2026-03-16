@@ -45,7 +45,7 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    const image = req.file ? req.file.filename : null;
+    const image = req.file ? req.file.path : null;
 
     const featured =
       req.body.featured === "true" ||
@@ -89,7 +89,7 @@ exports.updateProduct = async (req, res) => {
     let image = null;
 
     if (req.file) {
-      image = req.file.filename;
+      image = req.file.path;
     }
 
     let featured = null;
