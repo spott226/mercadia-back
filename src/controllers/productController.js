@@ -55,7 +55,14 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    const image = req.file ? req.file.secure_url : null;
+    let image = null;
+
+    if(req.files){
+      const productImage = req.files.find(f => f.fieldname === "image");
+      if(productImage){
+        image = productImage.path || productImage.secure_url;
+      }
+    }
 
     const featured =
       req.body.featured === "true" ||
@@ -76,6 +83,7 @@ exports.createProduct = async (req, res) => {
 
     const product_id = product.id;
 
+
     /* =========================
     GUARDAR VARIANTES
     ========================= */
@@ -88,14 +96,24 @@ exports.createProduct = async (req, res) => {
         variants = JSON.parse(variants);
       }
 
-      for (const variant of variants) {
+      const variantImages = req.files
+        ? req.files.filter(f => f.fieldname === "variant_images")
+        : [];
+
+      for (let i = 0; i < variants.length; i++) {
+
+        const variant = variants[i];
+
+        const image = variantImages[i]
+          ? (variantImages[i].path || variantImages[i].secure_url)
+          : null;
 
         await Product.createVariant({
           product_id: product_id,
           color: variant.color,
           size: variant.size,
           price: variant.price,
-          image: variant.image || null
+          image: image
         });
 
       }
@@ -126,8 +144,11 @@ exports.updateProduct = async (req, res) => {
 
     let image = null;
 
-    if (req.file) {
-      image = req.file.secure_url;
+    if(req.files){
+      const productImage = req.files.find(f => f.fieldname === "image");
+      if(productImage){
+        image = productImage.path || productImage.secure_url;
+      }
     }
 
     let featured = null;
@@ -158,9 +179,12 @@ exports.updateProduct = async (req, res) => {
       return res.status(403).json({ error: "not allowed" });
     }
 
+
     /* =========================
     REEMPLAZAR VARIANTES
     ========================= */
+
+    await Product.deleteVariantsByProduct(id);
 
     if (req.body.variants) {
 
@@ -170,17 +194,24 @@ exports.updateProduct = async (req, res) => {
         variants = JSON.parse(variants);
       }
 
-      // 🔥 BORRAR VARIANTES EXISTENTES
-      await Product.deleteVariantsByProduct(id);
+      const variantImages = req.files
+        ? req.files.filter(f => f.fieldname === "variant_images")
+        : [];
 
-      for (const variant of variants) {
+      for (let i = 0; i < variants.length; i++) {
+
+        const variant = variants[i];
+
+        const image = variantImages[i]
+          ? (variantImages[i].path || variantImages[i].secure_url)
+          : null;
 
         await Product.createVariant({
           product_id: id,
           color: variant.color,
           size: variant.size,
           price: variant.price,
-          image: variant.image || null
+          image: image
         });
 
       }
