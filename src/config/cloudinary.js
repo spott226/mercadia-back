@@ -5,7 +5,7 @@ CONFIGURACIÓN CLOUDINARY
 ========================= */
 
 cloudinary.config({
-  cloud_name: "dztnrsw5l",
+  cloud_name: "dztmrsw5l",
   api_key: "957324218615478",
   api_secret: "Y9FiZxvBIhdzcjh9AnY1HvLjL-I",
   secure: true
