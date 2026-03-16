@@ -237,3 +237,17 @@ exports.getImagesByProduct = async (product_id) => {
   return result.rows;
 
 };
+
+
+/* =========================
+   ELIMINAR VARIANTES DE PRODUCTO
+========================= */
+
+exports.deleteVariantsByProduct = async (product_id) => {
+
+  await db.query(
+    "DELETE FROM product_variants WHERE product_id = $1",
+    [product_id]
+  );
+
+};

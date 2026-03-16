@@ -159,7 +159,7 @@ exports.updateProduct = async (req, res) => {
     }
 
     /* =========================
-    AGREGAR VARIANTES NUEVAS
+    REEMPLAZAR VARIANTES
     ========================= */
 
     if (req.body.variants) {
@@ -169,6 +169,9 @@ exports.updateProduct = async (req, res) => {
       if (typeof variants === "string") {
         variants = JSON.parse(variants);
       }
+
+      // 🔥 BORRAR VARIANTES EXISTENTES
+      await Product.deleteVariantsByProduct(id);
 
       for (const variant of variants) {
 
