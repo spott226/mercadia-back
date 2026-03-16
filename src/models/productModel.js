@@ -192,14 +192,14 @@ exports.createProductImage = async (data) => {
 
 exports.createVariant = async (data) => {
 
-  const { product_id, color, size, price } = data;
+  const { product_id, color, size, price, image } = data;
 
   const result = await db.query(
     `INSERT INTO product_variants
-     (product_id, color, size, price)
-     VALUES ($1,$2,$3,$4)
+     (product_id, color, size, price, image)
+     VALUES ($1,$2,$3,$4,$5)
      RETURNING *`,
-    [product_id, color, size, price]
+    [product_id, color, size, price, image || null]
   );
 
   return result.rows[0];

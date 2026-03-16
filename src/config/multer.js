@@ -4,10 +4,10 @@ const cloudinary = require("./cloudinary");
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
+  params: async (req, file) => ({
     folder: "mercadia/products",
     allowed_formats: ["jpg", "jpeg", "png", "webp"]
-  }
+  })
 });
 
 const upload = multer({ storage });

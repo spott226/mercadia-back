@@ -94,7 +94,8 @@ exports.createProduct = async (req, res) => {
           product_id: product_id,
           color: variant.color,
           size: variant.size,
-          price: variant.price
+          price: variant.price,
+          image: variant.image || null
         });
 
       }
@@ -175,7 +176,8 @@ exports.updateProduct = async (req, res) => {
           product_id: id,
           color: variant.color,
           size: variant.size,
-          price: variant.price
+          price: variant.price,
+          image: variant.image || null
         });
 
       }
