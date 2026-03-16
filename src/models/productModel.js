@@ -163,3 +163,77 @@ exports.countProductsByStore = async (store_id) => {
   }
 
 };
+
+
+/* =========================
+   CREAR IMAGEN
+========================= */
+
+exports.createProductImage = async (data) => {
+
+  const { product_id, image_url } = data;
+
+  const result = await db.query(
+    `INSERT INTO product_images
+     (product_id, image_url)
+     VALUES ($1,$2)
+     RETURNING *`,
+    [product_id, image_url]
+  );
+
+  return result.rows[0];
+
+};
+
+
+/* =========================
+   CREAR VARIANTE
+========================= */
+
+exports.createVariant = async (data) => {
+
+  const { product_id, color, size, price } = data;
+
+  const result = await db.query(
+    `INSERT INTO product_variants
+     (product_id, color, size, price)
+     VALUES ($1,$2,$3,$4)
+     RETURNING *`,
+    [product_id, color, size, price]
+  );
+
+  return result.rows[0];
+
+};
+
+
+/* =========================
+   OBTENER VARIANTES
+========================= */
+
+exports.getVariantsByProduct = async (product_id) => {
+
+  const result = await db.query(
+    "SELECT * FROM product_variants WHERE product_id = $1",
+    [product_id]
+  );
+
+  return result.rows;
+
+};
+
+
+/* =========================
+   OBTENER IMÁGENES
+========================= */
+
+exports.getImagesByProduct = async (product_id) => {
+
+  const result = await db.query(
+    "SELECT * FROM product_images WHERE product_id = $1",
+    [product_id]
+  );
+
+  return result.rows;
+
+};

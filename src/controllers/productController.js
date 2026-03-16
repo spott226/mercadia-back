@@ -14,6 +14,17 @@ exports.getProducts = async (req, res) => {
 
     const products = await Product.getProductsByStore(store_id);
 
+    // Agregar variantes e imágenes a cada producto
+    for (const product of products) {
+
+      const variants = await Product.getVariantsByProduct(product.id);
+      const images = await Product.getImagesByProduct(product.id);
+
+      product.variants = variants;
+      product.images = images;
+
+    }
+
     res.json(products);
 
   } catch (err) {
@@ -62,7 +73,52 @@ exports.createProduct = async (req, res) => {
       featured: featured
     };
 
+    // Crear producto base
     const product = await Product.createProduct(data);
+
+    const product_id = product.id;
+
+    // Guardar variantes si vienen
+    if (req.body.variants) {
+
+      let variants = req.body.variants;
+
+      if (typeof variants === "string") {
+        variants = JSON.parse(variants);
+      }
+
+      for (const variant of variants) {
+
+        await Product.createVariant({
+          product_id: product_id,
+          color: variant.color,
+          size: variant.size,
+          price: variant.price
+        });
+
+      }
+
+    }
+
+    // Guardar imágenes adicionales
+    if (req.body.images) {
+
+      let images = req.body.images;
+
+      if (typeof images === "string") {
+        images = JSON.parse(images);
+      }
+
+      for (const img of images) {
+
+        await Product.createProductImage({
+          product_id: product_id,
+          image_url: img
+        });
+
+      }
+
+    }
 
     res.status(201).json(product);
 
