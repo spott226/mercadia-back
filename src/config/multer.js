@@ -6,10 +6,12 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "mercadia/products",
-    allowed_formats: ["jpg","png","jpeg","webp"]
+    allowed_formats: ["jpg", "jpeg", "png", "webp"]
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage: storage
+});
 
 module.exports = upload;
