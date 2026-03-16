@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path");   // ← agregar esto
 
 const storeRoutes = require("./routes/stores");
 const productRoutes = require("./routes/products");
@@ -15,6 +16,12 @@ CONFIGURACIÓN BÁSICA
 
 app.use(cors());
 app.use(express.json());
+
+/* =========================
+SERVIR IMÁGENES
+========================= */
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // ← agregar esto
 
 /* =========================
 RUTAS API
