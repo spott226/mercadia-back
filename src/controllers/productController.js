@@ -99,7 +99,7 @@ exports.createProduct = async (req, res) => {
     }
 
     /* =========================
-    VARIANTES
+    VARIANTES (SIN IMAGEN)
     ========================= */
 
     if (req.body.variants) {
@@ -109,8 +109,8 @@ exports.createProduct = async (req, res) => {
         variants = JSON.parse(variants);
       }
 
-      for (const variant of variants) {
-        if (!variant.color || !variant.size) continue;
+      for (let i = 0; i < variants.length; i++) {
+        const variant = variants[i];
 
         await Product.createVariant({
           product_id: product_id,
@@ -175,27 +175,25 @@ exports.updateProduct = async (req, res) => {
     }
 
     /* =========================
-    🔥 REEMPLAZAR VARIANTES BIEN
+    REEMPLAZAR VARIANTES (FIX REAL)
     ========================= */
 
-    await Product.deleteVariantsByProduct(id);
+    if (req.body.variants !== undefined) {
 
-    let variants = [];
+      let variants = req.body.variants;
 
-    if (req.body.variants) {
-      try {
-        variants =
-          typeof req.body.variants === "string"
-            ? JSON.parse(req.body.variants)
-            : req.body.variants;
-      } catch (e) {
-        variants = [];
+      if (typeof variants === "string") {
+        try {
+          variants = JSON.parse(variants);
+        } catch (e) {
+          variants = [];
+        }
       }
-    }
 
-    if (variants.length > 0) {
-      for (const variant of variants) {
-        if (!variant.color || !variant.size) continue;
+      await Product.deleteVariantsByProduct(id);
+
+      for (let i = 0; i < variants.length; i++) {
+        const variant = variants[i];
 
         await Product.createVariant({
           product_id: id,
@@ -204,6 +202,7 @@ exports.updateProduct = async (req, res) => {
           price: variant.price
         });
       }
+
     }
 
     /* =========================

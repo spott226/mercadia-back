@@ -1,7 +1,7 @@
 const db = require("../db/db");
 
 /* =========================
-OBTENER PRODUCTOS
+   OBTENER TODOS LOS PRODUCTOS
 ========================= */
 exports.getProductsByStore = async (store_id) => {
   try {
@@ -9,7 +9,9 @@ exports.getProductsByStore = async (store_id) => {
       "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
       [store_id]
     );
+
     return result.rows;
+
   } catch (error) {
     console.error("Error getting products:", error);
     throw error;
@@ -18,7 +20,26 @@ exports.getProductsByStore = async (store_id) => {
 
 
 /* =========================
-CREAR PRODUCTO
+   OBTENER PRODUCTOS DESTACADOS
+========================= */
+exports.getFeaturedProducts = async (store_id) => {
+  try {
+    const result = await db.query(
+      "SELECT * FROM products WHERE store_id = $1 AND featured = true ORDER BY id DESC LIMIT 4",
+      [store_id]
+    );
+
+    return result.rows;
+
+  } catch (error) {
+    console.error("Error getting featured products:", error);
+    throw error;
+  }
+};
+
+
+/* =========================
+   CREAR PRODUCTO
 ========================= */
 exports.createProduct = async (data) => {
   try {
@@ -42,7 +63,7 @@ exports.createProduct = async (data) => {
 
 
 /* =========================
-ACTUALIZAR PRODUCTO
+   ACTUALIZAR PRODUCTO
 ========================= */
 exports.updateProduct = async (id, store_id, data) => {
   try {
@@ -71,81 +92,45 @@ exports.updateProduct = async (id, store_id, data) => {
 
 
 /* =========================
-ELIMINAR VARIANTES 🔥 FIX REAL
+   ELIMINAR PRODUCTO
 ========================= */
-exports.deleteVariantsByProduct = async (product_id) => {
+exports.deleteProduct = async (id, store_id) => {
   try {
-
     const result = await db.query(
-      "DELETE FROM product_variants WHERE product_id = $1 RETURNING id",
-      [product_id]
+      "DELETE FROM products WHERE id=$1 AND store_id=$2 RETURNING id",
+      [id, store_id]
     );
 
-    console.log("🧹 Variantes eliminadas:", result.rowCount);
-
-    return result.rowCount;
+    return result.rows[0];
 
   } catch (error) {
-    console.error("Error deleting variants:", error);
+    console.error("Error deleting product:", error);
     throw error;
   }
 };
 
 
 /* =========================
-ELIMINAR IMÁGENES
+   CONTAR PRODUCTOS POR TIENDA
 ========================= */
-exports.deleteImagesByProduct = async (product_id) => {
+exports.countProductsByStore = async (store_id) => {
   try {
-
     const result = await db.query(
-      "DELETE FROM product_images WHERE product_id = $1 RETURNING id",
-      [product_id]
+      "SELECT COUNT(*) FROM products WHERE store_id = $1",
+      [store_id]
     );
 
-    console.log("🧹 Imágenes eliminadas:", result.rowCount);
-
-    return result.rowCount;
+    return parseInt(result.rows[0].count);
 
   } catch (error) {
-    console.error("Error deleting images:", error);
+    console.error("Error counting products:", error);
     throw error;
   }
 };
 
 
 /* =========================
-CREAR VARIANTE
-========================= */
-exports.createVariant = async (data) => {
-  const { product_id, color, size, price } = data;
-
-  const result = await db.query(
-    `INSERT INTO product_variants
-     (product_id, color, size, price)
-     VALUES ($1,$2,$3,$4)
-     RETURNING *`,
-    [product_id, color, size, price]
-  );
-
-  return result.rows[0];
-};
-
-
-/* =========================
-OBTENER VARIANTES
-========================= */
-exports.getVariantsByProduct = async (product_id) => {
-  const result = await db.query(
-    "SELECT * FROM product_variants WHERE product_id = $1",
-    [product_id]
-  );
-  return result.rows;
-};
-
-
-/* =========================
-CREAR IMAGEN
+   CREAR IMAGEN POR COLOR
 ========================= */
 exports.createProductImage = async (data) => {
 
@@ -160,16 +145,81 @@ exports.createProductImage = async (data) => {
   );
 
   return result.rows[0];
+
 };
 
 
 /* =========================
-OBTENER IMÁGENES
+   ELIMINAR IMÁGENES DE PRODUCTO 🔥 (FALTABA)
+========================= */
+exports.deleteImagesByProduct = async (product_id) => {
+
+  await db.query(
+    "DELETE FROM product_images WHERE product_id = $1",
+    [product_id]
+  );
+
+};
+
+
+/* =========================
+   CREAR VARIANTE
+========================= */
+exports.createVariant = async (data) => {
+
+  const { product_id, color, size, price } = data;
+
+  const result = await db.query(
+    `INSERT INTO product_variants
+     (product_id, color, size, price)
+     VALUES ($1,$2,$3,$4)
+     RETURNING *`,
+    [product_id, color, size, price]
+  );
+
+  return result.rows[0];
+
+};
+
+
+/* =========================
+   OBTENER VARIANTES
+========================= */
+exports.getVariantsByProduct = async (product_id) => {
+
+  const result = await db.query(
+    "SELECT * FROM product_variants WHERE product_id = $1",
+    [product_id]
+  );
+
+  return result.rows;
+
+};
+
+
+/* =========================
+   OBTENER IMÁGENES
 ========================= */
 exports.getImagesByProduct = async (product_id) => {
+
   const result = await db.query(
     "SELECT * FROM product_images WHERE product_id = $1",
     [product_id]
   );
+
   return result.rows;
+
+};
+
+
+/* =========================
+   ELIMINAR VARIANTES DE PRODUCTO
+========================= */
+exports.deleteVariantsByProduct = async (product_id) => {
+
+  await db.query(
+    "DELETE FROM product_variants WHERE product_id = $1",
+    [product_id]
+  );
+
 };
