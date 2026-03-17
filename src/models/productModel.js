@@ -92,10 +92,23 @@ exports.updateProduct = async (id, store_id, data) => {
 
 
 /* =========================
-   ELIMINAR PRODUCTO
+   ELIMINAR PRODUCTO (🔥 FIX)
 ========================= */
 exports.deleteProduct = async (id, store_id) => {
   try {
+
+    // 🔥 eliminar primero dependencias
+    await db.query(
+      "DELETE FROM product_images WHERE product_id = $1",
+      [id]
+    );
+
+    await db.query(
+      "DELETE FROM product_variants WHERE product_id = $1",
+      [id]
+    );
+
+    // 🔥 luego eliminar producto
     const result = await db.query(
       "DELETE FROM products WHERE id=$1 AND store_id=$2 RETURNING id",
       [id, store_id]
@@ -150,7 +163,7 @@ exports.createProductImage = async (data) => {
 
 
 /* =========================
-   ELIMINAR IMÁGENES DE PRODUCTO 🔥 (FALTABA)
+   ELIMINAR IMÁGENES DE PRODUCTO
 ========================= */
 exports.deleteImagesByProduct = async (product_id) => {
 
