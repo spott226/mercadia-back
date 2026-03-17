@@ -5,18 +5,32 @@ const productController = require("../controllers/productController");
 const auth = require("../middleware/auth");
 const upload = require("../config/multer");
 
-// catálogo público por tienda
+// catálogo público
 router.get("/:store_id", productController.getProducts);
 
-// operaciones del panel (requieren token)
+// crear producto
+router.post(
+  "/",
+  auth,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "color_images", maxCount: 20 }
+  ]),
+  productController.createProduct
+);
 
-// crear producto con imagen y variantes
-router.post("/", auth, upload.any(), productController.createProduct);
+// editar producto
+router.put(
+  "/:id",
+  auth,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "color_images", maxCount: 20 }
+  ]),
+  productController.updateProduct
+);
 
-// editar producto con imagen y variantes
-router.put("/:id", auth, upload.any(), productController.updateProduct);
-
-// eliminar producto
+// eliminar
 router.delete("/:id", auth, productController.deleteProduct);
 
 module.exports = router;

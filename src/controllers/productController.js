@@ -43,11 +43,9 @@ exports.createProduct = async (req, res) => {
 
     let image = null;
 
-    if (req.files) {
-      const productImage = req.files.find(f => f.fieldname === "image");
-      if (productImage) {
-        image = productImage.path || productImage.secure_url;
-      }
+    // ✅ FIX: fields()
+    if (req.files?.image?.[0]) {
+      image = req.files.image[0].path || req.files.image[0].secure_url;
     }
 
     const featured =
@@ -60,9 +58,9 @@ exports.createProduct = async (req, res) => {
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
-      image: image,
-      store_id: store_id,
-      featured: featured
+      image,
+      store_id,
+      featured
     };
 
     const product = await Product.createProduct(data);
@@ -72,9 +70,8 @@ exports.createProduct = async (req, res) => {
     IMÁGENES POR COLOR
     ========================= */
 
-    const colorImages = req.files
-      ? req.files.filter(f => f.fieldname === "color_images")
-      : [];
+    // ✅ FIX: fields()
+    const colorImages = req.files?.color_images || [];
 
     let imageColors = [];
     if (req.body.image_colors) {
@@ -85,21 +82,23 @@ exports.createProduct = async (req, res) => {
       }
     }
 
+    // ✅ FIX REAL: asegurar correspondencia
     for (let i = 0; i < colorImages.length; i++) {
+
       const file = colorImages[i];
       const imageUrl = file.path || file.secure_url;
 
       const color = imageColors[i] || "default";
 
       await Product.createProductImage({
-        product_id: product_id,
-        color: color,
+        product_id,
+        color,
         image_url: imageUrl
       });
     }
 
     /* =========================
-    VARIANTES (SIN IMAGEN)
+    VARIANTES
     ========================= */
 
     if (req.body.variants) {
@@ -112,8 +111,10 @@ exports.createProduct = async (req, res) => {
       for (let i = 0; i < variants.length; i++) {
         const variant = variants[i];
 
+        if (!variant.color || !variant.size) continue;
+
         await Product.createVariant({
-          product_id: product_id,
+          product_id,
           color: variant.color,
           size: variant.size,
           price: variant.price
@@ -139,11 +140,9 @@ exports.updateProduct = async (req, res) => {
 
     let image = null;
 
-    if (req.files) {
-      const productImage = req.files.find(f => f.fieldname === "image");
-      if (productImage) {
-        image = productImage.path || productImage.secure_url;
-      }
+    // ✅ FIX: fields()
+    if (req.files?.image?.[0]) {
+      image = req.files.image[0].path || req.files.image[0].secure_url;
     }
 
     let featured = null;
@@ -160,8 +159,8 @@ exports.updateProduct = async (req, res) => {
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
-      image: image,
-      featured: featured
+      image,
+      featured
     };
 
     const product = await Product.updateProduct(
@@ -175,7 +174,7 @@ exports.updateProduct = async (req, res) => {
     }
 
     /* =========================
-    REEMPLAZAR VARIANTES (FIX REAL)
+    VARIANTES
     ========================= */
 
     if (req.body.variants !== undefined) {
@@ -195,6 +194,8 @@ exports.updateProduct = async (req, res) => {
       for (let i = 0; i < variants.length; i++) {
         const variant = variants[i];
 
+        if (!variant.color || !variant.size) continue;
+
         await Product.createVariant({
           product_id: id,
           color: variant.color,
@@ -202,16 +203,14 @@ exports.updateProduct = async (req, res) => {
           price: variant.price
         });
       }
-
     }
 
     /* =========================
-    REEMPLAZAR IMÁGENES POR COLOR
+    IMÁGENES POR COLOR
     ========================= */
 
-    const colorImages = req.files
-      ? req.files.filter(f => f.fieldname === "color_images")
-      : [];
+    // ✅ FIX: fields()
+    const colorImages = req.files?.color_images || [];
 
     let imageColors = [];
     if (req.body.image_colors) {
@@ -227,6 +226,7 @@ exports.updateProduct = async (req, res) => {
       await Product.deleteImagesByProduct(id);
 
       for (let i = 0; i < colorImages.length; i++) {
+
         const file = colorImages[i];
         const imageUrl = file.path || file.secure_url;
 
@@ -234,7 +234,7 @@ exports.updateProduct = async (req, res) => {
 
         await Product.createProductImage({
           product_id: id,
-          color: color,
+          color,
           image_url: imageUrl
         });
       }
