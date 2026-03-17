@@ -99,7 +99,7 @@ exports.createProduct = async (req, res) => {
     }
 
     /* =========================
-    VARIANTES (SIN IMAGEN)
+    VARIANTES
     ========================= */
 
     if (req.body.variants) {
@@ -109,8 +109,8 @@ exports.createProduct = async (req, res) => {
         variants = JSON.parse(variants);
       }
 
-      for (let i = 0; i < variants.length; i++) {
-        const variant = variants[i];
+      for (const variant of variants) {
+        if (!variant.color || !variant.size) continue;
 
         await Product.createVariant({
           product_id: product_id,
@@ -175,19 +175,27 @@ exports.updateProduct = async (req, res) => {
     }
 
     /* =========================
-    REEMPLAZAR VARIANTES
+    🔥 REEMPLAZAR VARIANTES BIEN
     ========================= */
+
     await Product.deleteVariantsByProduct(id);
 
+    let variants = [];
+
     if (req.body.variants) {
-      let variants = req.body.variants;
-
-      if (typeof variants === "string") {
-        variants = JSON.parse(variants);
+      try {
+        variants =
+          typeof req.body.variants === "string"
+            ? JSON.parse(req.body.variants)
+            : req.body.variants;
+      } catch (e) {
+        variants = [];
       }
+    }
 
-      for (let i = 0; i < variants.length; i++) {
-        const variant = variants[i];
+    if (variants.length > 0) {
+      for (const variant of variants) {
+        if (!variant.color || !variant.size) continue;
 
         await Product.createVariant({
           product_id: id,
@@ -217,7 +225,6 @@ exports.updateProduct = async (req, res) => {
 
     if (colorImages.length > 0) {
 
-      // 🔥 IMPORTANTE: necesitas este método en el model
       await Product.deleteImagesByProduct(id);
 
       for (let i = 0; i < colorImages.length; i++) {
