@@ -3,11 +3,8 @@ const db = require("../db/db");
 /* =========================
    OBTENER TODOS LOS PRODUCTOS
 ========================= */
-
 exports.getProductsByStore = async (store_id) => {
-
   try {
-
     const result = await db.query(
       "SELECT * FROM products WHERE store_id = $1 ORDER BY id DESC",
       [store_id]
@@ -16,23 +13,17 @@ exports.getProductsByStore = async (store_id) => {
     return result.rows;
 
   } catch (error) {
-
     console.error("Error getting products:", error);
     throw error;
-
   }
-
 };
 
 
 /* =========================
    OBTENER PRODUCTOS DESTACADOS
 ========================= */
-
 exports.getFeaturedProducts = async (store_id) => {
-
   try {
-
     const result = await db.query(
       "SELECT * FROM products WHERE store_id = $1 AND featured = true ORDER BY id DESC LIMIT 4",
       [store_id]
@@ -41,23 +32,17 @@ exports.getFeaturedProducts = async (store_id) => {
     return result.rows;
 
   } catch (error) {
-
     console.error("Error getting featured products:", error);
     throw error;
-
   }
-
 };
 
 
 /* =========================
    CREAR PRODUCTO
 ========================= */
-
 exports.createProduct = async (data) => {
-
   try {
-
     const { name, description, price, image, category, store_id, featured } = data;
 
     const result = await db.query(
@@ -71,23 +56,17 @@ exports.createProduct = async (data) => {
     return result.rows[0];
 
   } catch (error) {
-
     console.error("Error creating product:", error);
     throw error;
-
   }
-
 };
 
 
 /* =========================
    ACTUALIZAR PRODUCTO
 ========================= */
-
 exports.updateProduct = async (id, store_id, data) => {
-
   try {
-
     const { name, description, price, image, category, featured } = data;
 
     const result = await db.query(
@@ -106,23 +85,17 @@ exports.updateProduct = async (id, store_id, data) => {
     return result.rows[0];
 
   } catch (error) {
-
     console.error("Error updating product:", error);
     throw error;
-
   }
-
 };
 
 
 /* =========================
    ELIMINAR PRODUCTO
 ========================= */
-
 exports.deleteProduct = async (id, store_id) => {
-
   try {
-
     const result = await db.query(
       "DELETE FROM products WHERE id=$1 AND store_id=$2 RETURNING id",
       [id, store_id]
@@ -131,23 +104,17 @@ exports.deleteProduct = async (id, store_id) => {
     return result.rows[0];
 
   } catch (error) {
-
     console.error("Error deleting product:", error);
     throw error;
-
   }
-
 };
 
 
 /* =========================
    CONTAR PRODUCTOS POR TIENDA
 ========================= */
-
 exports.countProductsByStore = async (store_id) => {
-
   try {
-
     const result = await db.query(
       "SELECT COUNT(*) FROM products WHERE store_id = $1",
       [store_id]
@@ -156,20 +123,16 @@ exports.countProductsByStore = async (store_id) => {
     return parseInt(result.rows[0].count);
 
   } catch (error) {
-
     console.error("Error counting products:", error);
     throw error;
-
   }
-
 };
 
 
 /* =========================
-   CREAR IMAGEN (CORREGIDO)
+   CREAR IMAGEN POR COLOR
 ========================= */
-
-exports.createImage = async (data) => {
+exports.createProductImage = async (data) => {
 
   const { product_id, color, image_url } = data;
 
@@ -187,9 +150,21 @@ exports.createImage = async (data) => {
 
 
 /* =========================
-   CREAR VARIANTE (CORREGIDO)
+   ELIMINAR IMÁGENES DE PRODUCTO 🔥 (FALTABA)
 ========================= */
+exports.deleteImagesByProduct = async (product_id) => {
 
+  await db.query(
+    "DELETE FROM product_images WHERE product_id = $1",
+    [product_id]
+  );
+
+};
+
+
+/* =========================
+   CREAR VARIANTE
+========================= */
 exports.createVariant = async (data) => {
 
   const { product_id, color, size, price } = data;
@@ -210,7 +185,6 @@ exports.createVariant = async (data) => {
 /* =========================
    OBTENER VARIANTES
 ========================= */
-
 exports.getVariantsByProduct = async (product_id) => {
 
   const result = await db.query(
@@ -226,7 +200,6 @@ exports.getVariantsByProduct = async (product_id) => {
 /* =========================
    OBTENER IMÁGENES
 ========================= */
-
 exports.getImagesByProduct = async (product_id) => {
 
   const result = await db.query(
@@ -242,7 +215,6 @@ exports.getImagesByProduct = async (product_id) => {
 /* =========================
    ELIMINAR VARIANTES DE PRODUCTO
 ========================= */
-
 exports.deleteVariantsByProduct = async (product_id) => {
 
   await db.query(

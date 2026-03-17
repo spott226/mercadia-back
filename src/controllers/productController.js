@@ -69,7 +69,7 @@ exports.createProduct = async (req, res) => {
     const product_id = product.id;
 
     /* =========================
-    GUARDAR IMÁGENES POR COLOR (SIN NOMBRE DE ARCHIVO)
+    IMÁGENES POR COLOR
     ========================= */
 
     const colorImages = req.files
@@ -85,14 +85,13 @@ exports.createProduct = async (req, res) => {
       }
     }
 
-    // Mapeo por índice: file[i] -> color[i]
     for (let i = 0; i < colorImages.length; i++) {
       const file = colorImages[i];
       const imageUrl = file.path || file.secure_url;
 
       const color = imageColors[i] || "default";
 
-      await Product.createImage({
+      await Product.createProductImage({
         product_id: product_id,
         color: color,
         image_url: imageUrl
@@ -100,7 +99,7 @@ exports.createProduct = async (req, res) => {
     }
 
     /* =========================
-    GUARDAR VARIANTES (SIN IMAGEN)
+    VARIANTES (SIN IMAGEN)
     ========================= */
 
     if (req.body.variants) {
@@ -200,8 +199,9 @@ exports.updateProduct = async (req, res) => {
     }
 
     /* =========================
-    (OPCIONAL) REEMPLAZAR IMÁGENES
+    REEMPLAZAR IMÁGENES POR COLOR
     ========================= */
+
     const colorImages = req.files
       ? req.files.filter(f => f.fieldname === "color_images")
       : [];
@@ -215,9 +215,10 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
-    // Si mandan nuevas imágenes, puedes limpiar y reinsertar
     if (colorImages.length > 0) {
-      await Product.deleteImagesByProduct(id); // crea esta función si no la tienes
+
+      // 🔥 IMPORTANTE: necesitas este método en el model
+      await Product.deleteImagesByProduct(id);
 
       for (let i = 0; i < colorImages.length; i++) {
         const file = colorImages[i];
@@ -225,7 +226,7 @@ exports.updateProduct = async (req, res) => {
 
         const color = imageColors[i] || "default";
 
-        await Product.createImage({
+        await Product.createProductImage({
           product_id: id,
           color: color,
           image_url: imageUrl
