@@ -166,19 +166,19 @@ exports.countProductsByStore = async (store_id) => {
 
 
 /* =========================
-   CREAR IMAGEN
+   CREAR IMAGEN (CORREGIDO)
 ========================= */
 
-exports.createProductImage = async (data) => {
+exports.createImage = async (data) => {
 
-  const { product_id, image_url } = data;
+  const { product_id, color, image_url } = data;
 
   const result = await db.query(
     `INSERT INTO product_images
-     (product_id, image_url)
-     VALUES ($1,$2)
+     (product_id, color, image_url)
+     VALUES ($1,$2,$3)
      RETURNING *`,
-    [product_id, image_url]
+    [product_id, color, image_url]
   );
 
   return result.rows[0];
@@ -187,19 +187,19 @@ exports.createProductImage = async (data) => {
 
 
 /* =========================
-   CREAR VARIANTE
+   CREAR VARIANTE (CORREGIDO)
 ========================= */
 
 exports.createVariant = async (data) => {
 
-  const { product_id, color, size, price, image } = data;
+  const { product_id, color, size, price } = data;
 
   const result = await db.query(
     `INSERT INTO product_variants
-     (product_id, color, size, price, image)
-     VALUES ($1,$2,$3,$4,$5)
+     (product_id, color, size, price)
+     VALUES ($1,$2,$3,$4)
      RETURNING *`,
-    [product_id, color, size, price, image || null]
+    [product_id, color, size, price]
   );
 
   return result.rows[0];

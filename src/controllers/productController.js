@@ -1,65 +1,51 @@
 const Product = require("../models/productModel");
 const Store = require("../models/storeModel");
 
-
 /* =========================
 OBTENER PRODUCTOS
 ========================= */
-
 exports.getProducts = async (req, res) => {
-
   try {
-
     const { store_id } = req.params;
 
     const products = await Product.getProductsByStore(store_id);
 
     for (const product of products) {
-
       const variants = await Product.getVariantsByProduct(product.id);
       const images = await Product.getImagesByProduct(product.id);
 
       product.variants = variants;
       product.images = images;
-
     }
 
     res.json(products);
 
   } catch (err) {
-
     console.error(err);
     res.status(500).json({ error: "server error" });
-
   }
-
 };
 
 
 /* =========================
 CREAR PRODUCTO
 ========================= */
-
 exports.createProduct = async (req, res) => {
-
   try {
-
     const store_id = req.user.store_id;
 
     const count = await Product.countProductsByStore(store_id);
     const limit = await Store.getProductLimit(store_id);
 
     if (count >= limit) {
-      return res.status(403).json({
-        error: "product limit reached"
-      });
+      return res.status(403).json({ error: "product limit reached" });
     }
 
     let image = null;
 
-    if(req.files){
+    if (req.files) {
       const productImage = req.files.find(f => f.fieldname === "image");
-      if(productImage){
+      if (productImage) {
         image = productImage.path || productImage.secure_url;
       }
     }
@@ -80,73 +66,83 @@ exports.createProduct = async (req, res) => {
     };
 
     const product = await Product.createProduct(data);
-
     const product_id = product.id;
 
+    /* =========================
+    GUARDAR IMÁGENES POR COLOR (SIN NOMBRE DE ARCHIVO)
+    ========================= */
+
+    const colorImages = req.files
+      ? req.files.filter(f => f.fieldname === "color_images")
+      : [];
+
+    let imageColors = [];
+    if (req.body.image_colors) {
+      try {
+        imageColors = JSON.parse(req.body.image_colors);
+      } catch (e) {
+        imageColors = [];
+      }
+    }
+
+    // Mapeo por índice: file[i] -> color[i]
+    for (let i = 0; i < colorImages.length; i++) {
+      const file = colorImages[i];
+      const imageUrl = file.path || file.secure_url;
+
+      const color = imageColors[i] || "default";
+
+      await Product.createImage({
+        product_id: product_id,
+        color: color,
+        image_url: imageUrl
+      });
+    }
 
     /* =========================
-    GUARDAR VARIANTES
+    GUARDAR VARIANTES (SIN IMAGEN)
     ========================= */
 
     if (req.body.variants) {
-
       let variants = req.body.variants;
 
       if (typeof variants === "string") {
         variants = JSON.parse(variants);
       }
 
-      const variantImages = req.files
-        ? req.files.filter(f => f.fieldname === "variant_images")
-        : [];
-
       for (let i = 0; i < variants.length; i++) {
-
         const variant = variants[i];
-
-        const image = variantImages[i]
-          ? (variantImages[i].path || variantImages[i].secure_url)
-          : null;
 
         await Product.createVariant({
           product_id: product_id,
           color: variant.color,
           size: variant.size,
-          price: variant.price,
-          image: image
+          price: variant.price
         });
-
       }
-
     }
 
     res.status(201).json(product);
 
   } catch (err) {
-
     console.error(err);
     res.status(500).json({ error: "server error" });
-
   }
-
 };
 
 
 /* =========================
 ACTUALIZAR PRODUCTO
 ========================= */
-
 exports.updateProduct = async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     let image = null;
 
-    if(req.files){
+    if (req.files) {
       const productImage = req.files.find(f => f.fieldname === "image");
-      if(productImage){
+      if (productImage) {
         image = productImage.path || productImage.secure_url;
       }
     }
@@ -179,65 +175,78 @@ exports.updateProduct = async (req, res) => {
       return res.status(403).json({ error: "not allowed" });
     }
 
-
     /* =========================
     REEMPLAZAR VARIANTES
     ========================= */
-
     await Product.deleteVariantsByProduct(id);
 
     if (req.body.variants) {
-
       let variants = req.body.variants;
 
       if (typeof variants === "string") {
         variants = JSON.parse(variants);
       }
 
-      const variantImages = req.files
-        ? req.files.filter(f => f.fieldname === "variant_images")
-        : [];
-
       for (let i = 0; i < variants.length; i++) {
-
         const variant = variants[i];
-
-        const image = variantImages[i]
-          ? (variantImages[i].path || variantImages[i].secure_url)
-          : null;
 
         await Product.createVariant({
           product_id: id,
           color: variant.color,
           size: variant.size,
-          price: variant.price,
-          image: image
+          price: variant.price
         });
-
       }
+    }
 
+    /* =========================
+    (OPCIONAL) REEMPLAZAR IMÁGENES
+    ========================= */
+    const colorImages = req.files
+      ? req.files.filter(f => f.fieldname === "color_images")
+      : [];
+
+    let imageColors = [];
+    if (req.body.image_colors) {
+      try {
+        imageColors = JSON.parse(req.body.image_colors);
+      } catch (e) {
+        imageColors = [];
+      }
+    }
+
+    // Si mandan nuevas imágenes, puedes limpiar y reinsertar
+    if (colorImages.length > 0) {
+      await Product.deleteImagesByProduct(id); // crea esta función si no la tienes
+
+      for (let i = 0; i < colorImages.length; i++) {
+        const file = colorImages[i];
+        const imageUrl = file.path || file.secure_url;
+
+        const color = imageColors[i] || "default";
+
+        await Product.createImage({
+          product_id: id,
+          color: color,
+          image_url: imageUrl
+        });
+      }
     }
 
     res.json(product);
 
   } catch (err) {
-
     console.error(err);
     res.status(500).json({ error: "server error" });
-
   }
-
 };
 
 
 /* =========================
 ELIMINAR PRODUCTO
 ========================= */
-
 exports.deleteProduct = async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     const deleted = await Product.deleteProduct(
@@ -252,10 +261,7 @@ exports.deleteProduct = async (req, res) => {
     res.json({ message: "product deleted" });
 
   } catch (err) {
-
     console.error(err);
     res.status(500).json({ error: "server error" });
-
   }
-
 };
