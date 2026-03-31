@@ -1,3 +1,3 @@
 const bcrypt = require("bcrypt");
 
-bcrypt.hash("elysium340",10).then(console.log);
+bcrypt.hash("denim698",10).then(console.log);
