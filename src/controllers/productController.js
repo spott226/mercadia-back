@@ -15,7 +15,7 @@ exports.getProducts = async (req, res) => {
       parseInt(req.query.page) || 1;
 
     const limit =
-      parseInt(req.query.limit) || 10;
+      parseInt(req.query.limit) || 9999;
 
     const search =
       req.query.search || "";
