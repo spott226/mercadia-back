@@ -2,30 +2,96 @@ const Product = require("../models/productModel");
 const Store = require("../models/storeModel");
 
 /* =========================
-OBTENER PRODUCTOS
+OBTENER PRODUCTOS ERP
+PAGINACIÓN + BÚSQUEDA + FILTRO
 ========================= */
 exports.getProducts = async (req, res) => {
+
   try {
 
     const { store_id } = req.params;
 
+    const page =
+      parseInt(req.query.page) || 1;
+
+    const limit =
+      parseInt(req.query.limit) || 10;
+
+    const search =
+      req.query.search || "";
+
+    const category =
+      req.query.category || "";
+
+
+    /* =========================
+    PRODUCTOS PAGINADOS
+    ========================= */
+
+    const result =
+      await Product.getProductsByStore(
+        store_id,
+        {
+          page,
+          limit,
+          search,
+          category
+        }
+      );
+
     const products =
-      await Product.getProductsByStore(store_id);
+      result.products;
+
+    const pagination =
+      result.pagination;
+
+
+    /* =========================
+    CATEGORÍAS
+    ========================= */
+
+    const categories =
+      await Product.getCategoriesByStore(
+        store_id
+      );
+
+
+    /* =========================
+    VARIANTES E IMÁGENES
+    ========================= */
 
     for (const product of products) {
 
       const variants =
-        await Product.getVariantsByProduct(product.id);
+        await Product.getVariantsByProduct(
+          product.id
+        );
 
       const images =
-        await Product.getImagesByProduct(product.id);
+        await Product.getImagesByProduct(
+          product.id
+        );
 
       product.variants = variants;
+
       product.images = images;
 
     }
 
-    res.json(products);
+
+    /* =========================
+    RESPONSE ERP
+    ========================= */
+
+    res.json({
+
+      products,
+
+      pagination,
+
+      categories
+
+    });
 
   } catch (err) {
 
@@ -36,6 +102,7 @@ exports.getProducts = async (req, res) => {
     });
 
   }
+
 };
 
 
@@ -43,15 +110,21 @@ exports.getProducts = async (req, res) => {
 CREAR PRODUCTO
 ========================= */
 exports.createProduct = async (req, res) => {
+
   try {
 
-    const store_id = req.user.store_id;
+    const store_id =
+      req.user.store_id;
 
     const count =
-      await Product.countProductsByStore(store_id);
+      await Product.countProductsByStore(
+        store_id
+      );
 
     const limit =
-      await Store.getProductLimit(store_id);
+      await Store.getProductLimit(
+        store_id
+      );
 
     if (count >= limit) {
 
@@ -63,7 +136,11 @@ exports.createProduct = async (req, res) => {
 
     let image = null;
 
-    // imagen principal
+
+    /* =========================
+    IMAGEN PRINCIPAL
+    ========================= */
+
     if (req.files?.image?.[0]) {
 
       image =
@@ -81,11 +158,14 @@ exports.createProduct = async (req, res) => {
 
       name: req.body.name,
 
-      description: req.body.description,
+      description:
+        req.body.description,
 
-      price: req.body.price,
+      price:
+        req.body.price,
 
-      category: req.body.category,
+      category:
+        req.body.category,
 
       image,
 
@@ -96,9 +176,12 @@ exports.createProduct = async (req, res) => {
     };
 
     const product =
-      await Product.createProduct(data);
+      await Product.createProduct(
+        data
+      );
 
-    const product_id = product.id;
+    const product_id =
+      product.id;
 
 
     /* =========================
@@ -115,7 +198,9 @@ exports.createProduct = async (req, res) => {
       try {
 
         imageColors =
-          JSON.parse(req.body.image_colors);
+          JSON.parse(
+            req.body.image_colors
+          );
 
       } catch (e) {
 
@@ -125,12 +210,18 @@ exports.createProduct = async (req, res) => {
 
     }
 
-    for (let i = 0; i < colorImages.length; i++) {
+    for (
+      let i = 0;
+      i < colorImages.length;
+      i++
+    ) {
 
-      const file = colorImages[i];
+      const file =
+        colorImages[i];
 
       const imageUrl =
-        file.path || file.secure_url;
+        file.path ||
+        file.secure_url;
 
       const color =
         imageColors[i] || "default";
@@ -154,19 +245,31 @@ exports.createProduct = async (req, res) => {
 
     if (req.body.variants) {
 
-      let variants = req.body.variants;
+      let variants =
+        req.body.variants;
 
-      if (typeof variants === "string") {
+      if (
+        typeof variants === "string"
+      ) {
 
-        variants = JSON.parse(variants);
+        variants =
+          JSON.parse(variants);
 
       }
 
-      for (let i = 0; i < variants.length; i++) {
+      for (
+        let i = 0;
+        i < variants.length;
+        i++
+      ) {
 
-        const variant = variants[i];
+        const variant =
+          variants[i];
 
-        if (!variant.color || !variant.size) {
+        if (
+          !variant.color ||
+          !variant.size
+        ) {
           continue;
         }
 
@@ -174,17 +277,23 @@ exports.createProduct = async (req, res) => {
 
           product_id,
 
-          color: variant.color,
+          color:
+            variant.color,
 
-          size: variant.size,
+          size:
+            variant.size,
 
-          price: variant.price,
+          price:
+            variant.price,
 
-          stock: variant.stock,
+          stock:
+            variant.stock,
 
-          sku: variant.sku,
+          sku:
+            variant.sku,
 
-          cost: variant.cost
+          cost:
+            variant.cost
 
         });
 
@@ -203,20 +312,29 @@ exports.createProduct = async (req, res) => {
     });
 
   }
+
 };
 
 
 /* =========================
 ACTUALIZAR PRODUCTO
 ========================= */
-exports.updateProduct = async (req, res) => {
+exports.updateProduct = async (
+  req,
+  res
+) => {
+
   try {
 
     const { id } = req.params;
 
     let image = null;
 
-    // imagen principal
+
+    /* =========================
+    IMAGEN PRINCIPAL
+    ========================= */
+
     if (req.files?.image?.[0]) {
 
       image =
@@ -227,7 +345,9 @@ exports.updateProduct = async (req, res) => {
 
     let featured = null;
 
-    if (req.body.featured !== undefined) {
+    if (
+      req.body.featured !== undefined
+    ) {
 
       featured =
         req.body.featured === "true" ||
@@ -238,13 +358,17 @@ exports.updateProduct = async (req, res) => {
 
     const data = {
 
-      name: req.body.name,
+      name:
+        req.body.name,
 
-      description: req.body.description,
+      description:
+        req.body.description,
 
-      price: req.body.price,
+      price:
+        req.body.price,
 
-      category: req.body.category,
+      category:
+        req.body.category,
 
       image,
 
@@ -272,15 +396,21 @@ exports.updateProduct = async (req, res) => {
     VARIANTES ERP
     ========================= */
 
-    if (req.body.variants !== undefined) {
+    if (
+      req.body.variants !== undefined
+    ) {
 
-      let variants = req.body.variants;
+      let variants =
+        req.body.variants;
 
-      if (typeof variants === "string") {
+      if (
+        typeof variants === "string"
+      ) {
 
         try {
 
-          variants = JSON.parse(variants);
+          variants =
+            JSON.parse(variants);
 
         } catch (e) {
 
@@ -290,13 +420,23 @@ exports.updateProduct = async (req, res) => {
 
       }
 
-      await Product.deleteVariantsByProduct(id);
+      await Product.deleteVariantsByProduct(
+        id
+      );
 
-      for (let i = 0; i < variants.length; i++) {
+      for (
+        let i = 0;
+        i < variants.length;
+        i++
+      ) {
 
-        const variant = variants[i];
+        const variant =
+          variants[i];
 
-        if (!variant.color || !variant.size) {
+        if (
+          !variant.color ||
+          !variant.size
+        ) {
           continue;
         }
 
@@ -304,17 +444,23 @@ exports.updateProduct = async (req, res) => {
 
           product_id: id,
 
-          color: variant.color,
+          color:
+            variant.color,
 
-          size: variant.size,
+          size:
+            variant.size,
 
-          price: variant.price,
+          price:
+            variant.price,
 
-          stock: variant.stock,
+          stock:
+            variant.stock,
 
-          sku: variant.sku,
+          sku:
+            variant.sku,
 
-          cost: variant.cost
+          cost:
+            variant.cost
 
         });
 
@@ -337,7 +483,9 @@ exports.updateProduct = async (req, res) => {
       try {
 
         imageColors =
-          JSON.parse(req.body.image_colors);
+          JSON.parse(
+            req.body.image_colors
+          );
 
       } catch (e) {
 
@@ -349,14 +497,22 @@ exports.updateProduct = async (req, res) => {
 
     if (colorImages.length > 0) {
 
-      await Product.deleteImagesByProduct(id);
+      await Product.deleteImagesByProduct(
+        id
+      );
 
-      for (let i = 0; i < colorImages.length; i++) {
+      for (
+        let i = 0;
+        i < colorImages.length;
+        i++
+      ) {
 
-        const file = colorImages[i];
+        const file =
+          colorImages[i];
 
         const imageUrl =
-          file.path || file.secure_url;
+          file.path ||
+          file.secure_url;
 
         const color =
           imageColors[i] || "default";
@@ -386,13 +542,18 @@ exports.updateProduct = async (req, res) => {
     });
 
   }
+
 };
 
 
 /* =========================
 ELIMINAR PRODUCTO
 ========================= */
-exports.deleteProduct = async (req, res) => {
+exports.deleteProduct = async (
+  req,
+  res
+) => {
+
   try {
 
     const { id } = req.params;
@@ -424,4 +585,5 @@ exports.deleteProduct = async (req, res) => {
     });
 
   }
+
 };
