@@ -43,6 +43,19 @@ exports.createOrder = async (
 
 
     /* =========================
+    VALIDACIÓN AUTH (FIX REAL)
+    ========================= */
+
+    if (!req.user || !req.user.store_id) {
+      return res.status(401).json({
+        error: "store_id no disponible en usuario (auth fallando)"
+      });
+    }
+
+    const store_id = req.user.store_id;
+
+
+    /* =========================
     CREAR ORDER
     ========================= */
 
@@ -75,25 +88,26 @@ exports.createOrder = async (
 CUSTOMER ERP
 ========================= */
 
-let customer = null;
+    let customer = null;
 
-const customerResult =
-  await client.query(
-    `
-    SELECT *
-    FROM customers
-    WHERE phone = $1
-      AND store_id = $2
-    LIMIT 1
-    `,
-    [
-      customer_phone,
-      req.user.store_id
-    ]
-  );
+    const customerResult =
+      await client.query(
+        `
+        SELECT *
+        FROM customers
+        WHERE phone = $1
+          AND store_id = $2
+        LIMIT 1
+        `,
+        [
+          customer_phone,
+          store_id
+        ]
+      );
 
-customer =
-  customerResult.rows[0];
+    customer =
+      customerResult.rows[0];
+
 
     /* =========================
     INSERTAR ITEMS
@@ -168,60 +182,61 @@ customer =
 CUSTOMERS ERP
 ========================= */
 
-if(customer){
+    if (customer) {
 
-  await client.query(
-    `
-    UPDATE customers
-    SET
+      await client.query(
+        `
+        UPDATE customers
+        SET
 
-      total_orders =
-        total_orders + 1,
+          total_orders =
+            total_orders + 1,
 
-      total_spent =
-        total_spent + $1,
+          total_spent =
+            total_spent + $1,
 
-      address =
-        COALESCE($2,address)
+          address =
+            COALESCE($2,address)
 
-    WHERE id = $3
-    `,
-    [
-      total,
-      customer_address,
-      customer.id
-    ]
-  );
+        WHERE id = $3
+        `,
+        [
+          total,
+          customer_address,
+          customer.id
+        ]
+      );
 
-}else{
+    } else {
 
-  await client.query(
-    `
-    INSERT INTO customers
-    (
-      store_id,
-      name,
-      phone,
-      address,
-      total_orders,
-      total_spent
-    )
-    VALUES
-    (
-      $1,$2,$3,$4,$5,$6
-    )
-    `,
-    [
-      req.user.store_id,
-      customer_name,
-      customer_phone,
-      customer_address,
-      1,
-      total
-    ]
-  );
+      await client.query(
+        `
+        INSERT INTO customers
+        (
+          store_id,
+          name,
+          phone,
+          address,
+          total_orders,
+          total_spent
+        )
+        VALUES
+        (
+          $1,$2,$3,$4,$5,$6
+        )
+        `,
+        [
+          store_id,
+          customer_name,
+          customer_phone,
+          customer_address,
+          1,
+          total
+        ]
+      );
 
-}
+    }
+
 
     /* =========================
     ACTUALIZAR TOTAL
@@ -289,10 +304,6 @@ exports.getOrders = async (
     const orders =
       result.rows;
 
-
-    /* =========================
-    ITEMS
-    ========================= */
 
     for (const order of orders) {
 
