@@ -9,6 +9,13 @@ const productRoutes = require("./routes/products");
 const adminRoutes = require("./routes/admin");
 const orderRoutes = require("./routes/orders");
 
+/* =========================
+NUEVO INVENTORY ERP
+========================= */
+
+const inventoryRoutes =
+  require("./routes/inventory");
+
 const app = express();
 
 
@@ -33,7 +40,9 @@ SERVIR IMÁGENES
 
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "uploads"))
+  express.static(
+    path.join(__dirname, "uploads")
+  )
 );
 
 
@@ -41,13 +50,35 @@ app.use(
 RUTAS API
 ========================= */
 
-app.use("/api/stores", storeRoutes);
+app.use(
+  "/api/stores",
+  storeRoutes
+);
 
-app.use("/api/products", productRoutes);
+app.use(
+  "/api/products",
+  productRoutes
+);
 
-app.use("/api/admin", adminRoutes);
+app.use(
+  "/api/admin",
+  adminRoutes
+);
 
-app.use("/api/orders", orderRoutes);
+app.use(
+  "/api/orders",
+  orderRoutes
+);
+
+
+/* =========================
+INVENTORY ERP
+========================= */
+
+app.use(
+  "/api/inventory",
+  inventoryRoutes
+);
 
 
 /* =========================
@@ -57,8 +88,12 @@ RUTA TEST
 app.get("/", (req, res) => {
 
   res.json({
+
     success: true,
-    message: "Mercadia ERP Backend funcionando"
+
+    message:
+      "Mercadia ERP Backend funcionando"
+
   });
 
 });
@@ -71,8 +106,11 @@ app.get("/", (req, res) => {
 app.use((req, res) => {
 
   res.status(404).json({
+
     success: false,
+
     error: "Ruta no encontrada"
+
   });
 
 });
@@ -84,12 +122,20 @@ MANEJO GLOBAL ERRORES
 
 app.use((err, req, res, next) => {
 
-  console.error("❌ ERROR:", err);
+  console.error(
+    "❌ ERROR:",
+    err
+  );
 
   res.status(500).json({
+
     success: false,
-    error: "Internal Server Error",
+
+    error:
+      "Internal Server Error",
+
     detail: err.message
+
   });
 
 });
@@ -99,13 +145,16 @@ app.use((err, req, res, next) => {
 SERVER
 ========================= */
 
-const PORT = process.env.PORT || 3000;
+const PORT =
+  process.env.PORT || 3000;
 
 app.listen(PORT, () => {
 
   console.log(`
+
 🚀 Mercadia ERP Backend iniciado
 🌐 Puerto: ${PORT}
+
 `);
 
 });
