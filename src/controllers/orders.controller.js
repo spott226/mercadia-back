@@ -296,8 +296,22 @@ exports.getOrders = async (
 
   try {
 
-    const store_id =
-      req.user.store_id;
+  console.log(
+    "REQ USER:",
+    req.user
+  );
+
+  const store_id =
+    req.user?.store_id;
+
+  if(!store_id){
+
+    return res.status(401).json({
+      error:
+        "store_id no encontrado en token"
+    });
+
+  };
 
     const result =
       await pool.query(
