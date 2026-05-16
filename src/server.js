@@ -4,17 +4,30 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-const storeRoutes = require("./routes/stores");
-const productRoutes = require("./routes/products");
-const adminRoutes = require("./routes/admin");
-const orderRoutes = require("./routes/orders");
 
 /* =========================
-NUEVO INVENTORY ERP
+ROUTES
 ========================= */
+
+const storeRoutes =
+  require("./routes/stores");
+
+const productRoutes =
+  require("./routes/products");
+
+const adminRoutes =
+  require("./routes/admin");
+
+const orderRoutes =
+  require("./routes/orders");
 
 const inventoryRoutes =
   require("./routes/inventory");
+
+/* 🔥 NUEVO */
+const customerRoutes =
+  require("./routes/customers");
+
 
 const app = express();
 
@@ -70,14 +83,15 @@ app.use(
   orderRoutes
 );
 
-
-/* =========================
-INVENTORY ERP
-========================= */
-
 app.use(
   "/api/inventory",
   inventoryRoutes
+);
+
+/* 🔥 CUSTOMERS ERP */
+app.use(
+  "/api/customers",
+  customerRoutes
 );
 
 
@@ -109,7 +123,8 @@ app.use((req, res) => {
 
     success: false,
 
-    error: "Ruta no encontrada"
+    error:
+      "Ruta no encontrada"
 
   });
 
@@ -134,7 +149,8 @@ app.use((err, req, res, next) => {
     error:
       "Internal Server Error",
 
-    detail: err.message
+    detail:
+      err.message
 
   });
 
