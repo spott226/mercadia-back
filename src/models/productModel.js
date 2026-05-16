@@ -343,44 +343,158 @@ exports.updateProduct = async (
 
 
 /* =========================
-   ELIMINAR PRODUCTO
+   ELIMINAR PRODUCTO ERP
 ========================= */
 exports.deleteProduct = async (
   id,
   store_id
 ) => {
 
+  const client =
+    await db.connect();
+
   try {
 
-    await db.query(
+    await client.query(
+      "BEGIN"
+    );
+
+
+    /* =========================
+       VALIDAR PRODUCTO
+    ========================= */
+
+    const exists =
+      await client.query(
+        `
+        SELECT id
+
+        FROM products
+
+        WHERE
+        id = $1
+        AND store_id = $2
+        `,
+        [
+          id,
+          store_id
+        ]
+      );
+
+    if(
+      exists.rows.length === 0
+    ){
+
+      await client.query(
+        "ROLLBACK"
+      );
+
+      return false;
+
+    }
+
+
+    /* =========================
+       INVENTORY MOVEMENTS
+    ========================= */
+
+    await client.query(
+      `
+      DELETE FROM inventory_movements
+
+      WHERE variant_id IN (
+
+        SELECT id
+
+        FROM product_variants
+
+        WHERE product_id = $1
+
+      )
+      `,
+      [id]
+    );
+
+
+    /* =========================
+       ORDER ITEMS
+    ========================= */
+
+    await client.query(
+      `
+      DELETE FROM order_items
+
+      WHERE variant_id IN (
+
+        SELECT id
+
+        FROM product_variants
+
+        WHERE product_id = $1
+
+      )
+      `,
+      [id]
+    );
+
+
+    /* =========================
+       PRODUCT IMAGES
+    ========================= */
+
+    await client.query(
       `
       DELETE FROM product_images
+
       WHERE product_id = $1
       `,
       [id]
     );
 
-    await db.query(
+
+    /* =========================
+       PRODUCT VARIANTS
+    ========================= */
+
+    await client.query(
       `
       DELETE FROM product_variants
+
       WHERE product_id = $1
       `,
       [id]
     );
 
-    const result = await db.query(
+
+    /* =========================
+       PRODUCT
+    ========================= */
+
+    await client.query(
       `
       DELETE FROM products
-      WHERE id=$1
-      AND store_id=$2
-      RETURNING id
+
+      WHERE
+      id = $1
+      AND store_id = $2
       `,
-      [id, store_id]
+      [
+        id,
+        store_id
+      ]
     );
 
-    return result.rows[0];
+    await client.query(
+      "COMMIT"
+    );
+
+    return true;
 
   } catch (error) {
+
+    await client.query(
+      "ROLLBACK"
+    );
 
     console.error(
       "Error deleting product:",
@@ -388,6 +502,10 @@ exports.deleteProduct = async (
     );
 
     throw error;
+
+  } finally {
+
+    client.release();
 
   }
 
