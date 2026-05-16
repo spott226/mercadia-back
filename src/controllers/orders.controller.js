@@ -71,6 +71,25 @@ exports.createOrder = async (
 
     let total = 0;
 
+    /* =========================
+CUSTOMER ERP
+========================= */
+
+let customer = null;
+
+const customerResult =
+  await client.query(
+    `
+    SELECT *
+    FROM customers
+    WHERE phone = $1
+    LIMIT 1
+    `,
+    [customer_phone]
+  );
+
+customer =
+  customerResult.rows[0];
 
     /* =========================
     INSERTAR ITEMS
@@ -140,6 +159,66 @@ exports.createOrder = async (
 
     }
 
+
+    /* =========================
+CUSTOMERS ERP
+========================= */
+
+if(customer){
+
+  await client.query(
+    `
+    UPDATE customers
+    SET
+
+      total_orders =
+        total_orders + 1,
+
+      total_spent =
+        total_spent + $1,
+
+      address =
+        COALESCE($2,address)
+
+    WHERE id = $3
+    `,
+    [
+      total,
+      customer_address,
+      customer.id
+    ]
+  );
+
+}else{
+
+  await client.query(
+    `
+    INSERT INTO customers
+    (
+      name,
+      phone,
+      address,
+      total_orders,
+      total_spent
+    )
+    VALUES
+    (
+      $1,
+      $2,
+      $3,
+      1,
+      $4
+    )
+    `,
+    [
+      customer_name,
+      customer_phone,
+      customer_address,
+      total
+    ]
+  );
+
+}
 
     /* =========================
     ACTUALIZAR TOTAL
