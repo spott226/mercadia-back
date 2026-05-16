@@ -46,13 +46,15 @@ exports.createOrder = async (
     VALIDACIÓN AUTH (FIX REAL)
     ========================= */
 
-    if (!req.user || !req.user.store_id) {
-      return res.status(401).json({
-        error: "store_id no disponible en usuario (auth fallando)"
-      });
-    }
+    const store_id = req.body.store_id;
 
-    const store_id = req.user.store_id;
+if (!store_id) {
+
+  return res.status(400).json({
+    error: "store_id requerido"
+  });
+
+}
 
 
     /* =========================
