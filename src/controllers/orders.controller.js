@@ -62,24 +62,26 @@ if (!store_id) {
     ========================= */
 
     const orderResult =
-      await client.query(
-        `
-        INSERT INTO orders
-        (
-          customer_name,
-          customer_phone,
-          customer_address,
-          status
-        )
-        VALUES ($1,$2,$3,'PENDING')
-        RETURNING *
-        `,
-        [
-          customer_name,
-          customer_phone,
-          customer_address
-        ]
-      );
+  await client.query(
+    `
+    INSERT INTO orders
+    (
+      store_id,
+      customer_name,
+      customer_phone,
+      customer_address,
+      status
+    )
+    VALUES ($1,$2,$3,$4,'PENDING')
+    RETURNING *
+    `,
+    [
+      store_id,
+      customer_name,
+      customer_phone,
+      customer_address
+    ]
+  );
 
     const order =
       orderResult.rows[0];
@@ -294,18 +296,22 @@ exports.getOrders = async (
 
   try {
 
+    const store_id =
+      req.user.store_id;
+
     const result =
       await pool.query(
         `
         SELECT *
         FROM orders
+        WHERE store_id = $1
         ORDER BY id DESC
-        `
+        `,
+        [store_id]
       );
 
     const orders =
       result.rows;
-
 
     for (const order of orders) {
 
@@ -373,15 +379,19 @@ exports.updateOrderStatus = async (
     await client.query("BEGIN");
 
 
-    const orderResult =
-      await client.query(
-        `
-        SELECT *
-        FROM orders
-        WHERE id = $1
-        `,
-        [orderId]
-      );
+   const orderResult =
+  await client.query(
+    `
+    SELECT *
+    FROM orders
+    WHERE id = $1
+    AND store_id = $2
+    `,
+    [
+      orderId,
+      req.user.store_id
+    ]
+  );
 
     const order =
       orderResult.rows[0];
