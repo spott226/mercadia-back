@@ -43,18 +43,19 @@ exports.createOrder = async (
 
 
     /* =========================
-    VALIDACIÓN AUTH (FIX REAL)
+    VALIDACIÓN AUTH
     ========================= */
 
-    const store_id = req.body.store_id;
+    const store_id =
+      req.body.store_id;
 
-if (!store_id) {
+    if (!store_id) {
 
-  return res.status(400).json({
-    error: "store_id requerido"
-  });
+      return res.status(400).json({
+        error: "store_id requerido"
+      });
 
-}
+    }
 
 
     /* =========================
@@ -62,35 +63,36 @@ if (!store_id) {
     ========================= */
 
     const orderResult =
-  await client.query(
-    `
-    INSERT INTO orders
-    (
-      store_id,
-      customer_name,
-      customer_phone,
-      customer_address,
-      status
-    )
-    VALUES ($1,$2,$3,$4,'PENDING')
-    RETURNING *
-    `,
-    [
-      store_id,
-      customer_name,
-      customer_phone,
-      customer_address
-    ]
-  );
+      await client.query(
+        `
+        INSERT INTO orders
+        (
+          store_id,
+          customer_name,
+          customer_phone,
+          customer_address,
+          status
+        )
+        VALUES ($1,$2,$3,$4,'PENDING')
+        RETURNING *
+        `,
+        [
+          store_id,
+          customer_name,
+          customer_phone,
+          customer_address
+        ]
+      );
 
     const order =
       orderResult.rows[0];
 
     let total = 0;
 
+
     /* =========================
-CUSTOMER ERP
-========================= */
+    CUSTOMER ERP
+    ========================= */
 
     let customer = null;
 
@@ -100,7 +102,7 @@ CUSTOMER ERP
         SELECT *
         FROM customers
         WHERE phone = $1
-          AND store_id = $2
+        AND store_id = $2
         LIMIT 1
         `,
         [
@@ -183,8 +185,8 @@ CUSTOMER ERP
 
 
     /* =========================
-CUSTOMERS ERP
-========================= */
+    CUSTOMERS ERP
+    ========================= */
 
     if (customer) {
 
@@ -296,22 +298,27 @@ exports.getOrders = async (
 
   try {
 
-  console.log(
-    "REQ USER:",
-    req.user
-  );
+    console.log(
+      "REQ USER:",
+      req.user
+    );
 
-  const store_id =
-    req.user?.store_id;
+    const store_id =
+      req.user?.store_id;
 
-  if(!store_id){
+    if(!store_id){
 
-    return res.status(401).json({
-      error:
-        "store_id no encontrado en token"
-    });
+      return res.status(401).json({
+        error:
+          "store_id no encontrado en token"
+      });
 
-  };
+    }
+
+
+    /* =========================
+    PEDIDOS
+    ========================= */
 
     const result =
       await pool.query(
@@ -327,43 +334,66 @@ exports.getOrders = async (
     const orders =
       result.rows;
 
-    for (const order of orders) {
 
-  try {
+    /* =========================
+    ITEMS MASIVO
+    ========================= */
 
-    const itemsResult =
-      await pool.query(
-        `
-        SELECT *
-        FROM order_items
-        WHERE order_id = $1
-        `,
-        [order.id]
-      );
+    const orderIds =
+      orders.map(o => o.id);
 
-    order.items =
-      itemsResult.rows || [];
+    let allItems = [];
 
-  } catch(err){
+    if(orderIds.length > 0){
 
-    console.error(
-      "ERROR ITEMS:",
-      order.id,
-      err
+      const itemsResult =
+        await pool.query(
+          `
+          SELECT *
+          FROM order_items
+          WHERE order_id = ANY($1)
+          `,
+          [orderIds]
+        );
+
+      allItems =
+        itemsResult.rows || [];
+
+    }
+
+
+    /* =========================
+    MAP ITEMS
+    ========================= */
+
+    orders.forEach(order=>{
+
+      order.items =
+        allItems.filter(
+          item =>
+            item.order_id === order.id
+        );
+
+    });
+
+
+    console.log(
+      "ORDERS FINAL:",
+      orders
     );
 
-    order.items = [];
 
-  }
+    /* =========================
+    RESPONSE
+    ========================= */
 
-}
+    res.json({
 
-console.log(
-  "ORDERS FINAL:",
-  orders
-);
+      success: true,
 
-    res.json(orders);
+      orders
+
+    });
 
   } catch (err) {
 
@@ -412,19 +442,19 @@ exports.updateOrderStatus = async (
     await client.query("BEGIN");
 
 
-   const orderResult =
-  await client.query(
-    `
-    SELECT *
-    FROM orders
-    WHERE id = $1
-    AND store_id = $2
-    `,
-    [
-      orderId,
-      req.user.store_id
-    ]
-  );
+    const orderResult =
+      await client.query(
+        `
+        SELECT *
+        FROM orders
+        WHERE id = $1
+        AND store_id = $2
+        `,
+        [
+          orderId,
+          req.user.store_id
+        ]
+      );
 
     const order =
       orderResult.rows[0];
@@ -464,6 +494,10 @@ exports.updateOrderStatus = async (
       itemsResult.rows;
 
 
+    /* =========================
+    DESCONTAR STOCK
+    ========================= */
+
     if (
       currentStatus !== "PAID"
       &&
@@ -486,7 +520,11 @@ exports.updateOrderStatus = async (
           variantResult.rows[0];
 
         if (!variant) {
-          throw new Error("Variante no encontrada");
+
+          throw new Error(
+            "Variante no encontrada"
+          );
+
         }
 
         if (
@@ -504,7 +542,8 @@ exports.updateOrderStatus = async (
           Number(variant.stock);
 
         const newStock =
-          previousStock - Number(item.quantity);
+          previousStock
+          - Number(item.quantity);
 
         await client.query(
           `
@@ -512,7 +551,10 @@ exports.updateOrderStatus = async (
           SET stock = $1
           WHERE id = $2
           `,
-          [newStock, variant.id]
+          [
+            newStock,
+            variant.id
+          ]
         );
 
         await client.query(
@@ -548,6 +590,10 @@ exports.updateOrderStatus = async (
     }
 
 
+    /* =========================
+    DEVOLVER STOCK
+    ========================= */
+
     if (
       currentStatus === "PAID"
       &&
@@ -573,7 +619,8 @@ exports.updateOrderStatus = async (
           Number(variant.stock);
 
         const newStock =
-          previousStock + Number(item.quantity);
+          previousStock
+          + Number(item.quantity);
 
         await client.query(
           `
@@ -581,7 +628,10 @@ exports.updateOrderStatus = async (
           SET stock = $1
           WHERE id = $2
           `,
-          [newStock, variant.id]
+          [
+            newStock,
+            variant.id
+          ]
         );
 
         await client.query(
@@ -617,20 +667,31 @@ exports.updateOrderStatus = async (
     }
 
 
+    /* =========================
+    UPDATE STATUS
+    ========================= */
+
     await client.query(
       `
       UPDATE orders
       SET status = $1
       WHERE id = $2
       `,
-      [status, order.id]
+      [
+        status,
+        order.id
+      ]
     );
 
     await client.query("COMMIT");
 
     res.json({
+
       success: true,
-      message: `Pedido actualizado a ${status}`
+
+      message:
+        `Pedido actualizado a ${status}`
+
     });
 
   } catch (err) {
@@ -658,8 +719,13 @@ exports.cancelOrder = async (
   next
 ) => {
 
-  req.body.status = "CANCELLED";
+  req.body.status =
+    "CANCELLED";
 
-  return exports.updateOrderStatus(req, res, next);
+  return exports.updateOrderStatus(
+    req,
+    res,
+    next
+  );
 
 };
