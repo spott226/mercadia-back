@@ -85,16 +85,21 @@ exports.getProductsByStore = async (
     );
 
     const total =
-      parseInt(totalQuery.rows[0].total);
+      parseInt(
+        totalQuery.rows[0].total
+      );
 
 
     /* =========================
        PRODUCTOS PAGINADOS
     ========================= */
 
-    values.push(limit);
+    const paginatedValues =
+      [...values];
 
-    values.push(offset);
+    paginatedValues.push(limit);
+
+    paginatedValues.push(offset);
 
     const result = await db.query(
       `
@@ -105,7 +110,7 @@ exports.getProductsByStore = async (
       LIMIT $${index}
       OFFSET $${index + 1}
       `,
-      values
+      paginatedValues
     );
 
     return {
@@ -224,7 +229,9 @@ exports.getFeaturedProducts = async (
 /* =========================
    CREAR PRODUCTO
 ========================= */
-exports.createProduct = async (data) => {
+exports.createProduct = async (
+  data
+) => {
 
   try {
 
@@ -674,6 +681,49 @@ exports.getVariantsByProduct = async (
 
 
 /* =========================
+   OBTENER VARIANTES MASIVO
+========================= */
+exports.getVariantsByProducts = async (
+  productIds
+) => {
+
+  try {
+
+    if(
+      !productIds ||
+      productIds.length === 0
+    ){
+
+      return [];
+
+    }
+
+    const result = await db.query(
+      `
+      SELECT *
+      FROM product_variants
+      WHERE product_id = ANY($1)
+      `,
+      [productIds]
+    );
+
+    return result.rows;
+
+  } catch (error) {
+
+    console.error(
+      "Error getting variants bulk:",
+      error
+    );
+
+    throw error;
+
+  }
+
+};
+
+
+/* =========================
    OBTENER IMÁGENES
 ========================= */
 exports.getImagesByProduct = async (
@@ -690,6 +740,49 @@ exports.getImagesByProduct = async (
   );
 
   return result.rows;
+
+};
+
+
+/* =========================
+   OBTENER IMÁGENES MASIVO
+========================= */
+exports.getImagesByProducts = async (
+  productIds
+) => {
+
+  try {
+
+    if(
+      !productIds ||
+      productIds.length === 0
+    ){
+
+      return [];
+
+    }
+
+    const result = await db.query(
+      `
+      SELECT *
+      FROM product_images
+      WHERE product_id = ANY($1)
+      `,
+      [productIds]
+    );
+
+    return result.rows;
+
+  } catch (error) {
+
+    console.error(
+      "Error getting images bulk:",
+      error
+    );
+
+    throw error;
+
+  }
 
 };
 
