@@ -329,20 +329,39 @@ exports.getOrders = async (
 
     for (const order of orders) {
 
-      const itemsResult =
-        await pool.query(
-          `
-          SELECT *
-          FROM order_items
-          WHERE order_id = $1
-          `,
-          [order.id]
-        );
+  try {
 
-      order.items =
-        itemsResult.rows;
+    const itemsResult =
+      await pool.query(
+        `
+        SELECT *
+        FROM order_items
+        WHERE order_id = $1
+        `,
+        [order.id]
+      );
 
-    }
+    order.items =
+      itemsResult.rows || [];
+
+  } catch(err){
+
+    console.error(
+      "ERROR ITEMS:",
+      order.id,
+      err
+    );
+
+    order.items = [];
+
+  }
+
+}
+
+console.log(
+  "ORDERS FINAL:",
+  orders
+);
 
     res.json(orders);
 
