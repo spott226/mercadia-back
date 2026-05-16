@@ -2,6 +2,9 @@ const express = require("express");
 
 const router = express.Router();
 
+const auth =
+  require("../middleware/auth");
+
 const {
 
   getInventory,
@@ -19,6 +22,7 @@ INVENTARIO ERP
 
 router.get(
   "/",
+  auth,
   getInventory
 );
 
@@ -29,6 +33,7 @@ MOVIMIENTOS INVENTARIO
 
 router.get(
   "/movements",
+  auth,
   getInventoryMovements
 );
 

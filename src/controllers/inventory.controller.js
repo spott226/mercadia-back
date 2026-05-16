@@ -13,6 +13,14 @@ exports.getInventory = async (
 
   try {
 
+    /* =========================
+    MULTI STORE ERP
+    ========================= */
+
+    const store_id =
+      req.user.store_id;
+
+
     const result =
       await pool.query(
         `
@@ -53,8 +61,11 @@ exports.getInventory = async (
         JOIN products p
         ON p.id = pv.product_id
 
+        WHERE p.store_id = $1
+
         ORDER BY pv.id DESC
-        `
+        `,
+        [store_id]
       );
 
     const inventory =
@@ -134,6 +145,14 @@ exports.getInventoryMovements = async (
 
   try {
 
+    /* =========================
+    MULTI STORE ERP
+    ========================= */
+
+    const store_id =
+      req.user.store_id;
+
+
     const result =
       await pool.query(
         `
@@ -177,8 +196,11 @@ exports.getInventoryMovements = async (
         JOIN products p
         ON p.id = pv.product_id
 
+        WHERE p.store_id = $1
+
         ORDER BY im.id DESC
-        `
+        `,
+        [store_id]
       );
 
     const movements =
