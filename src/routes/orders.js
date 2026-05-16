@@ -3,23 +3,56 @@ const express = require("express");
 const router = express.Router();
 
 const {
+
   createOrder,
-  confirmOrder
+
+  getOrders,
+
+  updateOrderStatus,
+
+  cancelOrder
+
 } = require("../controllers/orders.controller");
 
 
-// =========================
-// CREAR PEDIDO
-// =========================
+/* =========================
+CREAR PEDIDO
+========================= */
 
-router.post("/", createOrder);
+router.post(
+  "/",
+  createOrder
+);
 
 
-// =========================
-// CONFIRMAR PEDIDO
-// =========================
+/* =========================
+LISTAR PEDIDOS ERP
+========================= */
 
-router.patch("/:id/confirm", confirmOrder);
+router.get(
+  "/",
+  getOrders
+);
+
+
+/* =========================
+ACTUALIZAR STATUS
+========================= */
+
+router.patch(
+  "/:id/status",
+  updateOrderStatus
+);
+
+
+/* =========================
+CANCELAR PEDIDO
+========================= */
+
+router.patch(
+  "/:id/cancel",
+  cancelOrder
+);
 
 
 module.exports = router;
