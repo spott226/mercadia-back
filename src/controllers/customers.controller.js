@@ -79,19 +79,23 @@ exports.getCustomers = async (
     for(const customer of customers){
 
       const ordersResult =
-        await pool.query(
-          `
-          SELECT *
+  await pool.query(
+    `
+    SELECT *
 
-          FROM orders
+    FROM orders
 
-          WHERE
-            customer_phone = $1
+    WHERE
+      customer_phone = $1
+      AND store_id = $2
 
-          ORDER BY id DESC
-          `,
-          [customer.phone]
-        );
+    ORDER BY id DESC
+    `,
+    [
+      customer.phone,
+      store_id
+    ]
+  );
 
       customer.orders =
         ordersResult.rows;
