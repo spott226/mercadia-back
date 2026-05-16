@@ -83,9 +83,13 @@ const customerResult =
     SELECT *
     FROM customers
     WHERE phone = $1
+      AND store_id = $2
     LIMIT 1
     `,
-    [customer_phone]
+    [
+      customer_phone,
+      req.user.store_id
+    ]
   );
 
 customer =
@@ -195,6 +199,7 @@ if(customer){
     `
     INSERT INTO customers
     (
+      store_id,
       name,
       phone,
       address,
@@ -203,17 +208,15 @@ if(customer){
     )
     VALUES
     (
-      $1,
-      $2,
-      $3,
-      1,
-      $4
+      $1,$2,$3,$4,$5,$6
     )
     `,
     [
+      req.user.store_id,
       customer_name,
       customer_phone,
       customer_address,
+      1,
       total
     ]
   );
@@ -357,10 +360,6 @@ exports.updateOrderStatus = async (
     await client.query("BEGIN");
 
 
-    /* =========================
-    OBTENER PEDIDO
-    ========================= */
-
     const orderResult =
       await client.query(
         `
@@ -386,10 +385,6 @@ exports.updateOrderStatus = async (
       order.status;
 
 
-    /* =========================
-    EVITAR DUPLICADOS
-    ========================= */
-
     if (currentStatus === status) {
 
       throw new Error(
@@ -398,10 +393,6 @@ exports.updateOrderStatus = async (
 
     }
 
-
-    /* =========================
-    OBTENER ITEMS
-    ========================= */
 
     const itemsResult =
       await client.query(
@@ -416,11 +407,6 @@ exports.updateOrderStatus = async (
     const items =
       itemsResult.rows;
 
-
-    /* =========================
-    PAID
-    DESCONTAR STOCK
-    ========================= */
 
     if (
       currentStatus !== "PAID"
@@ -444,11 +430,7 @@ exports.updateOrderStatus = async (
           variantResult.rows[0];
 
         if (!variant) {
-
-          throw new Error(
-            "Variante no encontrada"
-          );
-
+          throw new Error("Variante no encontrada");
         }
 
         if (
@@ -466,13 +448,7 @@ exports.updateOrderStatus = async (
           Number(variant.stock);
 
         const newStock =
-          previousStock
-          - Number(item.quantity);
-
-
-        /* =========================
-        UPDATE STOCK
-        ========================= */
+          previousStock - Number(item.quantity);
 
         await client.query(
           `
@@ -480,16 +456,8 @@ exports.updateOrderStatus = async (
           SET stock = $1
           WHERE id = $2
           `,
-          [
-            newStock,
-            variant.id
-          ]
+          [newStock, variant.id]
         );
-
-
-        /* =========================
-        MOVEMENT SALE
-        ========================= */
 
         await client.query(
           `
@@ -506,27 +474,15 @@ exports.updateOrderStatus = async (
           )
           VALUES
           (
-            $1,
-            'SALE',
-            $2,
-            $3,
-            $4,
-            'ORDER',
-            $5,
-            $6
+            $1,'SALE',$2,$3,$4,'ORDER',$5,$6
           )
           `,
           [
             variant.id,
-
             item.quantity,
-
             previousStock,
-
             newStock,
-
             order.id,
-
             `Venta pedido #${order.id}`
           ]
         );
@@ -535,11 +491,6 @@ exports.updateOrderStatus = async (
 
     }
 
-
-    /* =========================
-    CANCELLED
-    REGRESAR STOCK
-    ========================= */
 
     if (
       currentStatus === "PAID"
@@ -566,13 +517,7 @@ exports.updateOrderStatus = async (
           Number(variant.stock);
 
         const newStock =
-          previousStock
-          + Number(item.quantity);
-
-
-        /* =========================
-        REGRESAR STOCK
-        ========================= */
+          previousStock + Number(item.quantity);
 
         await client.query(
           `
@@ -580,16 +525,8 @@ exports.updateOrderStatus = async (
           SET stock = $1
           WHERE id = $2
           `,
-          [
-            newStock,
-            variant.id
-          ]
+          [newStock, variant.id]
         );
-
-
-        /* =========================
-        MOVEMENT CANCELLED
-        ========================= */
 
         await client.query(
           `
@@ -606,27 +543,15 @@ exports.updateOrderStatus = async (
           )
           VALUES
           (
-            $1,
-            'CANCELLED_ORDER',
-            $2,
-            $3,
-            $4,
-            'ORDER',
-            $5,
-            $6
+            $1,'CANCELLED_ORDER',$2,$3,$4,'ORDER',$5,$6
           )
           `,
           [
             variant.id,
-
             item.quantity,
-
             previousStock,
-
             newStock,
-
             order.id,
-
             `Cancelación pedido #${order.id}`
           ]
         );
@@ -636,31 +561,20 @@ exports.updateOrderStatus = async (
     }
 
 
-    /* =========================
-    UPDATE STATUS
-    ========================= */
-
     await client.query(
       `
       UPDATE orders
       SET status = $1
       WHERE id = $2
       `,
-      [
-        status,
-        order.id
-      ]
+      [status, order.id]
     );
 
     await client.query("COMMIT");
 
     res.json({
-
       success: true,
-
-      message:
-        `Pedido actualizado a ${status}`
-
+      message: `Pedido actualizado a ${status}`
     });
 
   } catch (err) {
@@ -688,13 +602,8 @@ exports.cancelOrder = async (
   next
 ) => {
 
-  req.body.status =
-    "CANCELLED";
+  req.body.status = "CANCELLED";
 
-  return exports.updateOrderStatus(
-    req,
-    res,
-    next
-  );
+  return exports.updateOrderStatus(req, res, next);
 
 };
