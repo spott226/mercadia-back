@@ -33,6 +33,13 @@ router.post(
   adminController.updateStoreHero
 );
 
+router.post(
+  "/uploads",
+  auth,
+  upload.single("image"),
+  adminController.uploadAdminImage
+);
+
 router.get(
   "/promotions",
   auth,

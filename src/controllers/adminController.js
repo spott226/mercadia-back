@@ -422,6 +422,44 @@ exports.updateStoreHero = async (
 
 };
 
+
+exports.uploadAdminImage = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const image =
+      req.file?.path ||
+      req.file?.secure_url ||
+      req.file?.filename;
+
+    if(!image){
+
+      return res.status(400).json({
+        error:"image required"
+      });
+
+    }
+
+    res.json({
+      success:true,
+      image_url:image
+    });
+
+  } catch(err) {
+
+    console.error("UPLOAD ADMIN IMAGE ERROR:", err);
+
+    res.status(500).json({
+      error:"server error"
+    });
+
+  }
+
+};
+
 exports.getPromotions = async (
   req,
   res
