@@ -60,21 +60,75 @@ exports.getProducts = async (req, res) => {
     VARIANTES E IMÁGENES
     ========================= */
 
+    const productIds =
+      products.map(
+        product => product.id
+      );
+
+    const [
+      variants,
+      images
+    ] = await Promise.all([
+
+      Product.getVariantsByProducts(
+        productIds
+      ),
+
+      Product.getImagesByProducts(
+        productIds
+      )
+
+    ]);
+
+    const variantsByProduct =
+      new Map();
+
+    const imagesByProduct =
+      new Map();
+
+    for (const variant of variants) {
+
+      const list =
+        variantsByProduct.get(
+          variant.product_id
+        ) || [];
+
+      list.push(variant);
+
+      variantsByProduct.set(
+        variant.product_id,
+        list
+      );
+
+    }
+
+    for (const image of images) {
+
+      const list =
+        imagesByProduct.get(
+          image.product_id
+        ) || [];
+
+      list.push(image);
+
+      imagesByProduct.set(
+        image.product_id,
+        list
+      );
+
+    }
+
     for (const product of products) {
 
-      const variants =
-        await Product.getVariantsByProduct(
+      product.variants =
+        variantsByProduct.get(
           product.id
-        );
+        ) || [];
 
-      const images =
-        await Product.getImagesByProduct(
+      product.images =
+        imagesByProduct.get(
           product.id
-        );
-
-      product.variants = variants;
-
-      product.images = images;
+        ) || [];
 
     }
 

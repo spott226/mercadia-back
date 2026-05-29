@@ -39,7 +39,6 @@ exports.createOrder = async (
 
     }
 
-    await client.query("BEGIN");
 
 
     /* =========================
@@ -56,6 +55,8 @@ exports.createOrder = async (
       });
 
     }
+
+    await client.query("BEGIN");
 
 
     /* =========================
@@ -298,11 +299,6 @@ exports.getOrders = async (
 
   try {
 
-    console.log(
-      "REQ USER:",
-      req.user
-    );
-
     const store_id =
       req.user?.store_id;
 
@@ -366,21 +362,33 @@ exports.getOrders = async (
     MAP ITEMS
     ========================= */
 
+    const itemsByOrder =
+      new Map();
+
+    for(const item of allItems){
+
+      const list =
+        itemsByOrder.get(
+          item.order_id
+        ) || [];
+
+      list.push(item);
+
+      itemsByOrder.set(
+        item.order_id,
+        list
+      );
+
+    }
+
     orders.forEach(order=>{
 
       order.items =
-        allItems.filter(
-          item =>
-            item.order_id === order.id
-        );
+        itemsByOrder.get(
+          order.id
+        ) || [];
 
     });
-
-
-    console.log(
-      "ORDERS FINAL:",
-      orders
-    );
 
 
     /* =========================

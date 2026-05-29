@@ -41,12 +41,6 @@ exports.getCustomers = async (
     const store_id =
       req.user.store_id;
 
-    console.log(
-      "STORE ID:",
-      store_id
-    );
-
-
     /* =========================
     GET CUSTOMERS
     ========================= */
@@ -76,29 +70,68 @@ exports.getCustomers = async (
     HISTORIAL PEDIDOS
     ========================= */
 
-    for(const customer of customers){
+    const customerPhones =
+      [
+        ...new Set(
+          customers
+            .map(customer => customer.phone)
+            .filter(Boolean)
+        )
+      ];
+
+    let orders = [];
+
+    if(customerPhones.length > 0){
 
       const ordersResult =
-  await pool.query(
-    `
-    SELECT *
+        await pool.query(
+          `
+          SELECT *
 
-    FROM orders
+          FROM orders
 
-    WHERE
-      customer_phone = $1
-      AND store_id = $2
+          WHERE
+            store_id = $1
+            AND customer_phone = ANY($2)
 
-    ORDER BY id DESC
-    `,
-    [
-      customer.phone,
-      store_id
-    ]
-  );
+          ORDER BY id DESC
+          `,
+          [
+            store_id,
+            customerPhones
+          ]
+        );
+
+      orders =
+        ordersResult.rows;
+
+    }
+
+    const ordersByPhone =
+      new Map();
+
+    for(const order of orders){
+
+      const list =
+        ordersByPhone.get(
+          order.customer_phone
+        ) || [];
+
+      list.push(order);
+
+      ordersByPhone.set(
+        order.customer_phone,
+        list
+      );
+
+    }
+
+    for(const customer of customers){
 
       customer.orders =
-        ordersResult.rows;
+        ordersByPhone.get(
+          customer.phone
+        ) || [];
 
     }
 

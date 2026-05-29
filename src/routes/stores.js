@@ -7,4 +7,6 @@ router.get("/:slug", storeController.getStore);
 
 router.get("/:slug/products", storeController.getStoreProducts);
 
+router.get("/:slug/promotion", storeController.getStorePromotion);
+
 module.exports = router;
