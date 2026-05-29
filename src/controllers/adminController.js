@@ -69,6 +69,65 @@ const isValidTemplateKey = (value) => {
 
 };
 
+const parseHomepageSections = (value) => {
+
+  if(value === undefined){
+    return undefined;
+  }
+
+  if(Array.isArray(value)){
+    return value;
+  }
+
+  if(typeof value === "string"){
+
+    if(value.trim() === ""){
+      return [];
+    }
+
+    return JSON.parse(value);
+
+  }
+
+  return value;
+
+};
+
+const isValidHomepageSections = (value) => {
+
+  if(value === undefined){
+    return true;
+  }
+
+  if(!Array.isArray(value)){
+    return false;
+  }
+
+  return value.every(section => {
+
+    if(
+      !section ||
+      typeof section !== "object" ||
+      Array.isArray(section)
+    ){
+      return false;
+    }
+
+    if(
+      !section.type ||
+      typeof section.type !== "string"
+    ){
+      return false;
+    }
+
+    return /^[a-z0-9_-]{1,80}$/.test(
+      section.type
+    );
+
+  });
+
+};
+
 exports.login = async (req,res)=>{
 
   try{
@@ -174,6 +233,23 @@ exports.updateStore = async (
       template_key
     } = req.body;
 
+    let homepage_sections;
+
+    try{
+
+      homepage_sections =
+        parseHomepageSections(
+          req.body.homepage_sections
+        );
+
+    }catch(error){
+
+      return res.status(400).json({
+        error:"invalid homepage_sections"
+      });
+
+    }
+
     if(
       business_type !== undefined &&
       !allowedBusinessTypes.includes(
@@ -199,12 +275,25 @@ exports.updateStore = async (
 
     }
 
+    if(
+      !isValidHomepageSections(
+        homepage_sections
+      )
+    ){
+
+      return res.status(400).json({
+        error:"invalid homepage_sections"
+      });
+
+    }
+
     const store =
       await Store.updateStoreSettings(
         req.user.store_id,
         {
           business_type,
-          template_key
+          template_key,
+          homepage_sections
         }
       );
 

@@ -1,3 +1,3 @@
 const bcrypt = require("bcrypt");
 
-bcrypt.hash("cdshops111",10).then(console.log);
+bcrypt.hash("dlc321",10).then(console.log);

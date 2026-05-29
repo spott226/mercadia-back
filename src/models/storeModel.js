@@ -87,13 +87,17 @@ exports.updateStoreSettings = async (
     UPDATE stores
     SET
       business_type = COALESCE($1,business_type),
-      template_key = COALESCE($2,template_key)
-    WHERE id = $3
+      template_key = COALESCE($2,template_key),
+      homepage_sections = COALESCE($3::jsonb,homepage_sections)
+    WHERE id = $4
     RETURNING *
     `,
     [
       data.business_type,
       data.template_key,
+      data.homepage_sections
+        ? JSON.stringify(data.homepage_sections)
+        : null,
       store_id
     ]
   );
