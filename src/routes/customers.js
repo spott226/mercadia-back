@@ -20,7 +20,7 @@ CUSTOMERS ERP
 
 router.get(
   "/",
-  auth,
+  auth.requireAdmin,
   getCustomers
 );
 

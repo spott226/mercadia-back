@@ -22,7 +22,7 @@ INVENTARIO ERP
 
 router.get(
   "/",
-  auth,
+  auth.requireAdmin,
   getInventory
 );
 
@@ -33,7 +33,7 @@ MOVIMIENTOS INVENTARIO
 
 router.get(
   "/movements",
-  auth,
+  auth.requireAdmin,
   getInventoryMovements
 );
 

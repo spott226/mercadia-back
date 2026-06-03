@@ -1,5 +1,67 @@
 const pool = require("../db/db");
 
+const SALES_PIPELINE_STATUSES = [
+  "PAID",
+  "PREPARING",
+  "SHIPPED",
+  "DELIVERED"
+];
+
+const ALLOWED_ORDER_STATUSES = [
+  "PENDING",
+  ...SALES_PIPELINE_STATUSES,
+  "CANCELLED"
+];
+
+function isSalesPipelineStatus(status){
+
+  return SALES_PIPELINE_STATUSES.includes(
+    String(status || "").toUpperCase()
+  );
+
+}
+
+function sanitizeText(
+  value,
+  maxLength = 255
+){
+
+  return String(value || "")
+    .trim()
+    .slice(0, maxLength);
+
+}
+
+function normalizePhone(value){
+
+  return String(value || "")
+    .replace(/\D/g, "")
+    .slice(0, 30);
+
+}
+
+function normalizeOrderItems(items){
+
+  if(!Array.isArray(items)){
+    return [];
+  }
+
+  return items
+    .map(item => ({
+      variant_id:
+        Number(item?.variant_id),
+      quantity:
+        Number(item?.quantity || 0)
+    }))
+    .filter(item =>
+      Number.isInteger(item.variant_id) &&
+      item.variant_id > 0 &&
+      Number.isInteger(item.quantity) &&
+      item.quantity > 0
+    );
+
+}
+
 
 /* =========================
 CREAR PEDIDO
@@ -16,22 +78,35 @@ exports.createOrder = async (
 
   try {
 
-    const {
+    const normalizedCustomerName =
+      sanitizeText(
+        req.body.customer_name,
+        120
+      );
 
-      customer_name,
+    const normalizedCustomerPhone =
+      sanitizeText(
+        req.body.customer_phone,
+        30
+      );
 
-      customer_phone,
+    const normalizedPhoneDigits =
+      normalizePhone(
+        normalizedCustomerPhone
+      );
 
-      customer_address,
+    const normalizedCustomerAddress =
+      sanitizeText(
+        req.body.customer_address,
+        255
+      );
 
-      items
+    const normalizedItems =
+      normalizeOrderItems(
+        req.body.items
+      );
 
-    } = req.body;
-
-    if (
-      !items ||
-      items.length === 0
-    ) {
+    if(normalizedItems.length === 0){
 
       return res.status(400).json({
         error: "No hay productos"
@@ -39,16 +114,10 @@ exports.createOrder = async (
 
     }
 
-
-
-    /* =========================
-    VALIDACIÓN AUTH
-    ========================= */
-
     const store_id =
-      req.body.store_id;
+      Number(req.body.store_id);
 
-    if (!store_id) {
+    if(!Number.isInteger(store_id)){
 
       return res.status(400).json({
         error: "store_id requerido"
@@ -56,12 +125,48 @@ exports.createOrder = async (
 
     }
 
+    if(
+      !normalizedCustomerName ||
+      !normalizedCustomerPhone ||
+      !normalizedCustomerAddress
+    ){
+
+      return res.status(400).json({
+        error:
+          "customer_name, customer_phone y customer_address son requeridos"
+      });
+
+    }
+
+    if(!normalizedPhoneDigits){
+
+      return res.status(400).json({
+        error:
+          "customer_phone invalido"
+      });
+
+    }
+
+    const storeResult =
+      await client.query(
+        `
+        SELECT id
+        FROM stores
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [store_id]
+      );
+
+    if(storeResult.rows.length === 0){
+
+      return res.status(404).json({
+        error:"store not found"
+        });
+
+    }
+
     await client.query("BEGIN");
-
-
-    /* =========================
-    CREAR ORDER
-    ========================= */
 
     const orderResult =
       await client.query(
@@ -79,9 +184,9 @@ exports.createOrder = async (
         `,
         [
           store_id,
-          customer_name,
-          customer_phone,
-          customer_address
+          normalizedCustomerName,
+          normalizedCustomerPhone,
+          normalizedCustomerAddress
         ]
       );
 
@@ -90,37 +195,31 @@ exports.createOrder = async (
 
     let total = 0;
 
-
-    /* =========================
-    CUSTOMER ERP
-    ========================= */
-
-    let customer = null;
-
     const customerResult =
       await client.query(
         `
         SELECT *
         FROM customers
-        WHERE phone = $1
-        AND store_id = $2
+        WHERE
+          store_id = $1
+          AND regexp_replace(
+            COALESCE(phone, ''),
+            '\\D',
+            '',
+            'g'
+          ) = $2
         LIMIT 1
         `,
         [
-          customer_phone,
-          store_id
+          store_id,
+          normalizedPhoneDigits
         ]
       );
 
-    customer =
-      customerResult.rows[0];
+    const customer =
+      customerResult.rows[0] || null;
 
-
-    /* =========================
-    INSERTAR ITEMS
-    ========================= */
-
-    for (const item of items) {
+    for (const item of normalizedItems) {
 
       const variantResult =
         await client.query(
@@ -130,8 +229,12 @@ exports.createOrder = async (
           JOIN products p
           ON p.id = pv.product_id
           WHERE pv.id = $1
+          AND p.store_id = $2
           `,
-          [item.variant_id]
+          [
+            item.variant_id,
+            store_id
+          ]
         );
 
       const variant =
@@ -167,27 +270,16 @@ exports.createOrder = async (
         `,
         [
           order.id,
-
           variant.id,
-
           variant.name,
-
           `${variant.color} / ${variant.size}`,
-
           item.quantity,
-
           variant.price,
-
           subtotal
         ]
       );
 
     }
-
-
-    /* =========================
-    CUSTOMERS ERP
-    ========================= */
 
     if (customer) {
 
@@ -195,21 +287,14 @@ exports.createOrder = async (
         `
         UPDATE customers
         SET
-
-          total_orders =
-            total_orders + 1,
-
-          total_spent =
-            total_spent + $1,
-
-          address =
-            COALESCE($2,address)
-
+          total_orders = total_orders + 1,
+          total_spent = total_spent + $1,
+          address = COALESCE($2,address)
         WHERE id = $3
         `,
         [
           total,
-          customer_address,
+          normalizedCustomerAddress,
           customer.id
         ]
       );
@@ -234,9 +319,9 @@ exports.createOrder = async (
         `,
         [
           store_id,
-          customer_name,
-          customer_phone,
-          customer_address,
+          normalizedCustomerName,
+          normalizedCustomerPhone,
+          normalizedCustomerAddress,
           1,
           total
         ]
@@ -244,10 +329,28 @@ exports.createOrder = async (
 
     }
 
-
-    /* =========================
-    ACTUALIZAR TOTAL
-    ========================= */
+    await client.query(
+      `
+      UPDATE customer_accounts
+      SET
+        customer_id = COALESCE(customer_id, $1),
+        name = $2
+      WHERE
+        store_id = $3
+        AND regexp_replace(
+          COALESCE(phone, ''),
+          '\\D',
+          '',
+          'g'
+        ) = $4
+      `,
+      [
+        customer?.id || null,
+        normalizedCustomerName,
+        store_id,
+        normalizedPhoneDigits
+      ]
+    );
 
     await client.query(
       `
@@ -311,11 +414,6 @@ exports.getOrders = async (
 
     }
 
-
-    /* =========================
-    PEDIDOS
-    ========================= */
-
     const result =
       await pool.query(
         `
@@ -329,11 +427,6 @@ exports.getOrders = async (
 
     const orders =
       result.rows;
-
-
-    /* =========================
-    ITEMS MASIVO
-    ========================= */
 
     const orderIds =
       orders.map(o => o.id);
@@ -357,11 +450,6 @@ exports.getOrders = async (
 
     }
 
-
-    /* =========================
-    MAP ITEMS
-    ========================= */
-
     const itemsByOrder =
       new Map();
 
@@ -381,7 +469,7 @@ exports.getOrders = async (
 
     }
 
-    orders.forEach(order=>{
+    orders.forEach(order => {
 
       order.items =
         itemsByOrder.get(
@@ -389,11 +477,6 @@ exports.getOrders = async (
         ) || [];
 
     });
-
-
-    /* =========================
-    RESPONSE
-    ========================= */
 
     res.json({
 
@@ -428,18 +511,26 @@ exports.updateOrderStatus = async (
   try {
 
     const orderId =
-      req.params.id;
+      Number(req.params.id);
 
-    const { status } =
-      req.body;
+    const nextStatus =
+      String(req.body.status || "")
+        .trim()
+        .toUpperCase();
 
-    if (
-      ![
-        "PENDING",
-        "PAID",
-        "CANCELLED"
-      ].includes(status)
-    ) {
+    if(!Number.isInteger(orderId)){
+
+      return res.status(400).json({
+        error:"Id de pedido inválido"
+      });
+
+    }
+
+    if(
+      !ALLOWED_ORDER_STATUSES.includes(
+        nextStatus
+      )
+    ){
 
       return res.status(400).json({
         error: "Status inválido"
@@ -448,7 +539,6 @@ exports.updateOrderStatus = async (
     }
 
     await client.query("BEGIN");
-
 
     const orderResult =
       await client.query(
@@ -476,17 +566,35 @@ exports.updateOrderStatus = async (
     }
 
     const currentStatus =
-      order.status;
+      String(order.status || "")
+        .toUpperCase();
 
-
-    if (currentStatus === status) {
+    if (currentStatus === nextStatus) {
 
       throw new Error(
-        `Pedido ya está en estado ${status}`
+        `Pedido ya está en estado ${nextStatus}`
       );
 
     }
 
+    if(currentStatus === "CANCELLED"){
+
+      throw new Error(
+        "No se puede actualizar un pedido cancelado"
+      );
+
+    }
+
+    if(
+      currentStatus === "DELIVERED" &&
+      nextStatus !== "DELIVERED"
+    ){
+
+      throw new Error(
+        "No se puede retroceder un pedido entregado"
+      );
+
+    }
 
     const itemsResult =
       await client.query(
@@ -501,15 +609,14 @@ exports.updateOrderStatus = async (
     const items =
       itemsResult.rows;
 
-
-    /* =========================
-    DESCONTAR STOCK
-    ========================= */
-
-    if (
-      currentStatus !== "PAID"
+    if(
+      !isSalesPipelineStatus(
+        currentStatus
+      )
       &&
-      status === "PAID"
+      isSalesPipelineStatus(
+        nextStatus
+      )
     ) {
 
       for (const item of items) {
@@ -597,15 +704,12 @@ exports.updateOrderStatus = async (
 
     }
 
-
-    /* =========================
-    DEVOLVER STOCK
-    ========================= */
-
     if (
-      currentStatus === "PAID"
+      isSalesPipelineStatus(
+        currentStatus
+      )
       &&
-      status === "CANCELLED"
+      nextStatus === "CANCELLED"
     ) {
 
       for (const item of items) {
@@ -622,6 +726,14 @@ exports.updateOrderStatus = async (
 
         const variant =
           variantResult.rows[0];
+
+        if (!variant) {
+
+          throw new Error(
+            "Variante no encontrada"
+          );
+
+        }
 
         const previousStock =
           Number(variant.stock);
@@ -674,11 +786,6 @@ exports.updateOrderStatus = async (
 
     }
 
-
-    /* =========================
-    UPDATE STATUS
-    ========================= */
-
     await client.query(
       `
       UPDATE orders
@@ -686,7 +793,7 @@ exports.updateOrderStatus = async (
       WHERE id = $2
       `,
       [
-        status,
+        nextStatus,
         order.id
       ]
     );
@@ -698,7 +805,7 @@ exports.updateOrderStatus = async (
       success: true,
 
       message:
-        `Pedido actualizado a ${status}`
+        `Pedido actualizado a ${nextStatus}`
 
     });
 

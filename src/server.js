@@ -23,6 +23,11 @@ const orderRoutes =
 
 const inventoryRoutes =
   require("./routes/inventory");
+const customerAuthRoutes =
+  require("./routes/customerAuth");
+const {
+  ensureCustomerAccountSchema
+} = require("./db/bootstrap");
 
 /* 🔥 NUEVO */
 const customerRoutes =
@@ -31,12 +36,43 @@ const customerRoutes =
 
 const app = express();
 
+const allowedOrigins =
+  (process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+const corsOptions =
+  allowedOrigins.length > 0
+    ? {
+        origin(origin, callback){
+          if(
+            !origin ||
+            allowedOrigins.includes(origin)
+          ){
+            return callback(
+              null,
+              true
+            );
+          }
+
+          return callback(
+            new Error(
+              "Origin not allowed by CORS"
+            )
+          );
+        }
+      }
+    : {
+        origin: true
+      };
+
 
 /* =========================
 CONFIGURACIÓN BÁSICA
 ========================= */
 
-app.use(cors());
+app.use(cors(corsOptions));
 
 app.use(express.json({
   limit: "10mb"
@@ -92,6 +128,11 @@ app.use(
 app.use(
   "/api/customers",
   customerRoutes
+);
+
+app.use(
+  "/api/customer-auth",
+  customerAuthRoutes
 );
 
 
@@ -150,7 +191,9 @@ app.use((err, req, res, next) => {
       "Internal Server Error",
 
     detail:
-      err.message
+      process.env.NODE_ENV === "production"
+        ? undefined
+        : err.message
 
   });
 
@@ -164,13 +207,23 @@ SERVER
 const PORT =
   process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+ensureCustomerAccountSchema()
+  .then(() => {
+    app.listen(PORT, () => {
 
-  console.log(`
+      console.log(`
 
 🚀 Mercadia ERP Backend iniciado
 🌐 Puerto: ${PORT}
 
 `);
 
-});
+    });
+  })
+  .catch(error => {
+    console.error(
+      "Error inicializando schema:",
+      error
+    );
+    process.exit(1);
+  });

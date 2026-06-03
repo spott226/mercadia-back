@@ -9,60 +9,60 @@ router.post("/login",adminController.login);
 
 router.get(
   "/store",
-  auth,
+  auth.requireAdmin,
   adminController.getStore
 );
 
 router.patch(
   "/store",
-  auth,
+  auth.requireAdmin,
   adminController.updateStore
 );
 
 router.post(
   "/store/logo",
-  auth,
+  auth.requireAdmin,
   upload.single("logo"),
   adminController.updateStoreLogo
 );
 
 router.post(
   "/store/hero",
-  auth,
+  auth.requireAdmin,
   upload.single("hero"),
   adminController.updateStoreHero
 );
 
 router.post(
   "/uploads",
-  auth,
+  auth.requireAdmin,
   upload.single("image"),
   adminController.uploadAdminImage
 );
 
 router.get(
   "/promotions",
-  auth,
+  auth.requireAdmin,
   adminController.getPromotions
 );
 
 router.post(
   "/promotions",
-  auth,
+  auth.requireAdmin,
   upload.single("image"),
   adminController.createPromotion
 );
 
 router.patch(
   "/promotions/:id",
-  auth,
+  auth.requireAdmin,
   upload.single("image"),
   adminController.updatePromotion
 );
 
 router.delete(
   "/promotions/:id",
-  auth,
+  auth.requireAdmin,
   adminController.deletePromotion
 );
 

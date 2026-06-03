@@ -34,7 +34,7 @@ LISTAR PEDIDOS ERP
 
 router.get(
   "/",
-  auth,
+  auth.requireAdmin,
   getOrders
 );
 
@@ -45,7 +45,7 @@ ACTUALIZAR STATUS
 
 router.patch(
   "/:id/status",
-  auth,
+  auth.requireAdmin,
   updateOrderStatus
 );
 
@@ -56,7 +56,7 @@ CANCELAR PEDIDO
 
 router.patch(
   "/:id/cancel",
-  auth,
+  auth.requireAdmin,
   cancelOrder
 );
 

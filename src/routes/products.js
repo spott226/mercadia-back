@@ -11,7 +11,7 @@ router.get("/:store_id", productController.getProducts);
 // crear producto
 router.post(
   "/",
-  auth,
+  auth.requireAdmin,
   upload.fields([
     { name: "image", maxCount: 1 },
     { name: "color_images", maxCount: 20 }
@@ -22,7 +22,7 @@ router.post(
 // editar producto
 router.put(
   "/:id",
-  auth,
+  auth.requireAdmin,
   upload.fields([
     { name: "image", maxCount: 1 },
     { name: "color_images", maxCount: 20 }
@@ -31,6 +31,10 @@ router.put(
 );
 
 // eliminar
-router.delete("/:id", auth, productController.deleteProduct);
+router.delete(
+  "/:id",
+  auth.requireAdmin,
+  productController.deleteProduct
+);
 
 module.exports = router;
